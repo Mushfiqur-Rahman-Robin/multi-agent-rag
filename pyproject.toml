@@ -1,0 +1,148 @@
+[project]
+name = "lean-multi-agent-rag"
+version = "0.1.0"
+description = "A lean multi-agent RAG system with Gemini 2.0 Flash"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain",
+    "langchain-community",
+    "langchain-google-genai",
+    "langchain-openai",
+    "langchain-tavily",
+    "langgraph",
+    "tavily-python",
+    "python-dotenv",
+    "pydantic",
+    "google-generativeai",
+    "pillow",
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+    "google-cloud-aiplatform",
+    "python-magic",
+    "sqlalchemy[asyncio]",
+    "databases[postgresql]",
+    "asyncpg",
+    "alembic",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "httpx",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+version_files = [
+    "pyproject.toml:version",
+]
+update_changelog_on_bump = true
+bump_message = "chore(release): bump version to $new_version"
+check_consistency = true
+changelog_file = "CHANGELOG.md"
+commit_message_format = "{type}({scope}): {subject}"
+
+[tool.commitizen.types]
+feat = { description = "A new feature" }
+fix = { description = "A bug fix" }
+docs = { description = "Documentation only changes" }
+style = { description = "Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)" }
+refactor = { description = "A code change that neither fixes a bug nor adds a feature" }
+test = { description = "Adding missing tests or correcting existing tests" }
+chore = { description = "Changes to the build process or auxiliary tools and libraries such as documentation generation" }
+perf = { description = "A code change that improves performance" }
+build = { description = "Changes that affect the build system or external dependencies" }
+ci = { description = "Changes to our CI configuration files and scripts" }
+custom = { description = "Custom type for specific use cases" }
+
+[tool.commitizen.scopes]
+core = { description = "Core functionality" }
+ui = { description = "User interface changes" }
+api = { description = "API related changes" }
+deps = { description = "Dependency management" }
+docs = { description = "Project documentation" }
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = [
+  ".git",
+  "__pycache__",
+  ".pytest_cache",
+  ".ruff_cache",
+  "build",
+  "dist",
+  "venv",
+  ".secrets.baseline",
+  "tests/",
+  "alembic/",
+  "docs/",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "D", "ANN", "B", "RUF"]
+
+ignore = [
+  "E501",
+  "E402",
+  "E701",
+  "E712",
+  "N999",
+  "N815",
+  "N802",
+  "B008",
+  "B904",
+  "RUF012",
+  "RUF013",
+  "D",
+  "ANN",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.bandit]
+targets = ["src"]
+exclude_dirs = [".venv", "tests", "docs"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit", "tests/integration"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+pythonpath = ["."]
+asyncio_mode = "auto"
+addopts = [
+  "--strict-markers",
+  "--strict-config",
+  "--verbose",
+  "--tb=short",
+  "--cov=src",
+  "--cov-branch",
+  "--cov-report=term-missing",
+  "--cov-report=html",
+  "--cov-report=xml",
+  "--junit-xml=pytest-report.xml",
+]
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "integration: marks tests as integration tests",
+  "unit: marks tests as unit tests",
+]
+filterwarnings = [
+  "ignore::DeprecationWarning",
+  "ignore::PendingDeprecationWarning",
+]

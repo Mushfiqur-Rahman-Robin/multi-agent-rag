@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura - Multi-Agent RAG</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body class="dark-mode">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" id="new-chat-btn">
+                    <i data-lucide="plus"></i>
+                    <span>New Chat</span>
+                </button>
+            </div>
+            <div class="history-container" id="history-list">
+                <!-- Session items will be injected here -->
+                <div class="history-skeleton"></div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">A</div>
+                    <span class="username">Guest User</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-toggle" id="menu-toggle">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="model-info">
+                    <span class="model-badge">Gemini 2.5 Flash</span>
+                    <span class="agent-status">Multi-Agent System</span>
+                </div>
+            </header>
+
+            <div class="chat-viewport" id="chat-viewport">
+                <div class="welcome-screen" id="welcome-screen">
+                    <h1 class="hero-title">How can I help you today?</h1>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <i data-lucide="search"></i>
+                            <h3>Internet Research</h3>
+                            <p>Deep searches across the web for real-time info.</p>
+                        </div>
+                        <div class="feature-card">
+                            <i data-lucide="layout"></i>
+                            <h3>Logical Planning</h3>
+                            <p>Drafting structured roadmaps for complex tasks.</p>
+                        </div>
+                        <div class="feature-card">
+                            <i data-lucide="code"></i>
+                            <h3>Code Execution</h3>
+                            <p>Building and verifying code in real-time.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="messages-container" id="messages-container"></div>
+            </div>
+
+            <footer class="input-area">
+                <div class="input-wrapper">
+                    <div class="attachment-preview" id="attachment-preview"></div>
+                    <div class="text-input-container">
+                        <button class="icon-btn" id="attach-btn" title="Attach image or audio">
+                            <i data-lucide="paperclip"></i>
+                        </button>
+                        <input type="file" id="file-input" multiple hidden accept="image/*,audio/*">
+                        <textarea id="chat-input" placeholder="Ask anything..." rows="1"></textarea>
+                        <button class="send-btn" id="send-btn" disabled>
+                            <i data-lucide="arrow-up"></i>
+                        </button>
+                    </div>
+                    <p class="input-footer">Aura leverages multiple agents to research, plan, and code.</p>
+                </div>
+            </footer>
+        </main>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+
+</html>
