@@ -328,6 +328,31 @@ body {
     letter-spacing: 0.5px;
 }
 
+/* New Thought Process Styles */
+.agent-thought {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(124, 77, 255, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.agent-thought i {
+    width: 18px;
+    height: 18px;
+    color: var(--accent);
+}
+
+.final-response {
+    margin-bottom: 1rem;
+}
+
 /* Input Area */
 .input-area {
     padding: 1rem 0 2rem;

@@ -25,15 +25,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN mkdir -p logs uploads && chown -R appuser:appgroup /app
 
 # Copy dependencies first for caching
-COPY pyproject.toml requirements.txt ./
+COPY --chown=appuser:appgroup pyproject.toml requirements.txt ./
 RUN uv pip install --no-cache-dir --system -r requirements.txt
 
 # Copy application
-COPY . .
+COPY --chown=appuser:appgroup . .
 
-# Set permissions for the entire app directory
-RUN chown -R appuser:appgroup /app && \
-    chmod +x /app/entrypoint.sh
+# Set permissions for entrypoint
+RUN chmod +x /app/entrypoint.sh
 
 # Switch to non-root user
 USER appuser

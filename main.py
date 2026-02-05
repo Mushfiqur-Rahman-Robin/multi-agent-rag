@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from src.multi_agent_rag.api.routes import router
 from src.multi_agent_rag.models.chat import init_db
+from src.multi_agent_rag.core.config import APP_HOST, APP_PORT, APP_RELOAD
 from src.multi_agent_rag.core.logging_config import logger
 import uvicorn
 
@@ -26,4 +27,4 @@ async def startup():
     await init_db()
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host=APP_HOST, port=APP_PORT, reload=APP_RELOAD)

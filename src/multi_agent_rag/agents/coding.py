@@ -1,11 +1,12 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
-from src.multi_agent_rag.core.config import CODER_MODEL, GEMINI_API_KEY
+from langchain_openai import ChatOpenAI
+from src.multi_agent_rag.core.config import CODER_MODEL, OPENAI_API_KEY
 from src.multi_agent_rag.core.tools import python_repl
 from src.multi_agent_rag.core.logging_config import logger
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, ToolMessage
 
 def coding_agent(state):
-    llm = ChatGoogleGenerativeAI(model=CODER_MODEL, google_api_key=GEMINI_API_KEY)
+    logger.info("Coding agent initiated.")
+    llm = ChatOpenAI(model=CODER_MODEL, openai_api_key=OPENAI_API_KEY)
     llm_with_tools = llm.bind_tools([python_repl])
     
     plan_context = state.get("plan", "No plan available.")
@@ -17,14 +18,23 @@ def coding_agent(state):
     
     response = llm_with_tools.invoke(messages)
     
+    new_messages = [response]
+    
     # Handle tool calls for python_repl if any
     if response.tool_calls:
+        state["thought"] += f"\nExecuting code via python_repl: {len(response.tool_calls)} calls."
         for tool_call in response.tool_calls:
             if tool_call["name"] == "python_repl":
                 execution_result = python_repl.invoke(tool_call["args"])
-                # Normally we'd feed this back, but for MVP we'll just store and finish
+                new_messages.append(ToolMessage(
+                    content=str(execution_result),
+                    tool_call_id=tool_call["id"]
+                ))
                 state["code"] = execution_result
     else:
         state["code"] = response.content
+        state["thought"] += "\nGenerated code/response directly."
+    
+    state["final_response"] = "The implementation is ready. You can see the code output below. Let me know if you need any adjustments or further explanations!"
         
-    return {"messages": [response], "code": state["code"]}
+    return {"messages": new_messages, "code": state["code"], "thought": state["thought"], "final_response": state["final_response"]}

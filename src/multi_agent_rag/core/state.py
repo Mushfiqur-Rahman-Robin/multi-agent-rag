@@ -7,5 +7,7 @@ class AgentState(TypedDict):
     research_output: str
     plan: str
     code: str
+    thought: str
+    final_response: str
     next_step: str
     files: List[str]  # Paths to uploaded files

@@ -51,6 +51,22 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     }
 
+    // --- Utilities ---
+
+    function parseMarkdown(text) {
+        if (!text) return '';
+        if (typeof text !== 'string') text = String(text);
+        try {
+            if (window.marked) {
+                return typeof marked.parse === 'function' ? marked.parse(text) : marked(text);
+            }
+            return text;
+        } catch (e) {
+            console.error('Markdown parsing error:', e);
+            return text;
+        }
+    }
+
     async function switchSession(threadId) {
         currentThreadId = threadId;
         welcomeScreen.style.display = 'none';
@@ -61,16 +77,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const messages = await response.json();
             messagesContainer.innerHTML = '';
             messages.forEach(msg => {
-                const content = JSON.parse(msg.content);
+                let content = msg.content;
+                if (typeof content === 'string') {
+                    try {
+                        content = JSON.parse(content);
+                    } catch (e) {
+                        // Keep as string if not JSON
+                    }
+                }
                 addMessageToUI(msg.role === 'human' ? 'human' : 'ai', content);
             });
             scrollToBottom();
             loadSessions(); // Update active state
         } catch (error) {
             console.error('Error switching session:', error);
+            messagesContainer.innerHTML = '<div class="error">Failed to load conversation.</div>';
         }
     }
-
     async function deleteSession(threadId) {
         if (!confirm('Are you sure you want to delete this chat?')) return;
         try {
@@ -91,26 +114,40 @@ document.addEventListener('DOMContentLoaded', () => {
         historyList.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
     }
 
+    // --- Core Functions ---
+
     function addMessageToUI(role, content) {
+        console.log(`[UI] Adding ${role} message. Content type: ${typeof content}`, content);
         welcomeScreen.style.display = 'none';
+
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}`;
 
         let htmlContent = '';
         if (role === 'human') {
-            htmlContent = `<div class="msg-content">${content}</div>`;
+            const text = typeof content === 'string' ? content : (content.message || JSON.stringify(content));
+            htmlContent = `<div class="msg-content">${text}</div>`;
         } else {
-            // AI message might have research, plan, code
+            // AI message might have thought, response, research, plan, code
+            const thoughtHtml = content.thought ? `
+                <div class="agent-thought">
+                    <i data-lucide="brain"></i>
+                    <span>${content.thought}</span>
+                </div>` : '';
+
+            const responseHtml = content.response ? `
+                <div class="final-response">${parseMarkdown(content.response)}</div>` : '';
+
             const researchHtml = content.research ? `
                 <div class="agent-step">
                     <div class="step-header">Research Findings</div>
-                    <div class="step-body">${marked.parse(content.research)}</div>
+                    <div class="step-body">${parseMarkdown(content.research)}</div>
                 </div>` : '';
 
             const planHtml = content.plan ? `
                 <div class="agent-step">
                     <div class="step-header">Execution Plan</div>
-                    <div class="step-body">${marked.parse(content.plan)}</div>
+                    <div class="step-body">${parseMarkdown(content.plan)}</div>
                 </div>` : '';
 
             const codeHtml = content.code ? `
@@ -119,8 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="step-body"><pre><code>${content.code}</code></pre></div>
                 </div>` : '';
 
+            // Construct the inner message structure
             htmlContent = `
                 <div class="msg-content">
+                    ${thoughtHtml}
+                    ${responseHtml}
                     ${researchHtml}
                     ${planHtml}
                     ${codeHtml}
@@ -138,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         messagesContainer.appendChild(messageDiv);
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
         scrollToBottom();
     }
 
@@ -156,11 +196,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add user message to UI immediately (optimistic)
         addMessageToUI('human', text);
 
-        // Add a "Thinking" placeholder
+        // Add a "Thinking..." placeholder
         const thinkingDiv = document.createElement('div');
         thinkingDiv.className = 'message ai thinking';
-        thinkingDiv.innerHTML = '<div class="message-inner">Thinking...</div>';
+        thinkingDiv.innerHTML = `
+            <div class="message-inner">
+                <div class="msg-avatar">
+                    <i data-lucide="bot"></i>
+                </div>
+                <div class="msg-content">Thinking...</div>
+            </div>
+        `;
         messagesContainer.appendChild(thinkingDiv);
+        if (window.lucide) lucide.createIcons();
         scrollToBottom();
 
         const formData = new FormData();

@@ -1,7 +1,7 @@
 [project]
 name = "lean-multi-agent-rag"
 version = "0.1.0"
-description = "A lean multi-agent RAG system with Gemini 2.0 Flash"
+description = "A lean multi-agent RAG system with OpenAI GPT-4o"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
