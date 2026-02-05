@@ -5,7 +5,8 @@ from langchain_core.messages import SystemMessage
 
 def planning_agent(state):
     logger.info("Planning agent initiated.")
-    llm = ChatOpenAI(model=PLANNER_MODEL, openai_api_key=OPENAI_API_KEY)
+    selected_model = state.get("model") or PLANNER_MODEL
+    llm = ChatOpenAI(model=selected_model, openai_api_key=OPENAI_API_KEY)
     
     research_context = state.get("research_output", "No research data available.")
     

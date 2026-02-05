@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aura - Multi-Agent RAG</title>
+    <title>Aura | Multi-Agent Intelligence</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap"
         rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -21,18 +21,19 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <button class="new-chat-btn" id="new-chat-btn">
-                    <i data-lucide="plus"></i>
-                    <span>New Chat</span>
+                    <i data-lucide="plus-circle"></i>
+                    <span>New Thread</span>
                 </button>
             </div>
             <div class="history-container" id="history-list">
-                <!-- Session items will be injected here -->
-                <div class="history-skeleton"></div>
+                <!-- Session items -->
             </div>
             <div class="sidebar-footer">
                 <div class="user-profile">
-                    <div class="avatar">A</div>
-                    <span class="username">Guest User</span>
+                    <div class="avatar">M</div>
+                    <div class="user-info">
+                        <span class="username">Explore Aura</span>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -43,9 +44,15 @@
                 <button class="menu-toggle" id="menu-toggle">
                     <i data-lucide="menu"></i>
                 </button>
-                <div class="model-info">
-                    <span class="model-badge">GPT-4o Mini</span>
-                    <span class="agent-status">Multi-Agent System</span>
+                <div class="model-controls">
+                    <label for="model-select" class="agent-status">Active Model:</label>
+                    <select id="model-select" class="model-selector">
+                        <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+                        <option value="gpt-4o-mini" selected>GPT-4o Mini</option>
+                    </select>
+                </div>
+                <div class="system-badges">
+                    <span class="agent-status">Multi-Agent Flow</span>
                 </div>
             </header>
 
@@ -56,17 +63,17 @@
                         <div class="feature-card">
                             <i data-lucide="search"></i>
                             <h3>Internet Research</h3>
-                            <p>Deep searches across the web for real-time info.</p>
+                            <p>Deep gathering of real-time insights across the web.</p>
                         </div>
                         <div class="feature-card">
-                            <i data-lucide="layout"></i>
+                            <i data-lucide="map"></i>
                             <h3>Logical Planning</h3>
-                            <p>Drafting structured roadmaps for complex tasks.</p>
+                            <p>Dynamic roadmaps tailored to your specific goals.</p>
                         </div>
                         <div class="feature-card">
-                            <i data-lucide="code"></i>
+                            <i data-lucide="terminal"></i>
                             <h3>Code Execution</h3>
-                            <p>Building and verifying code in real-time.</p>
+                            <p>Real-time implementation and verified outputs.</p>
                         </div>
                     </div>
                 </div>
@@ -77,16 +84,22 @@
                 <div class="input-wrapper">
                     <div class="attachment-preview" id="attachment-preview"></div>
                     <div class="text-input-container">
-                        <button class="icon-btn" id="attach-btn" title="Attach image or audio">
+                        <button class="icon-btn" id="attach-btn" title="Attach Files">
                             <i data-lucide="paperclip"></i>
                         </button>
                         <input type="file" id="file-input" multiple hidden accept="image/*,audio/*">
-                        <textarea id="chat-input" placeholder="Ask anything..." rows="1"></textarea>
+
+                        <button class="icon-btn" id="voice-btn" title="Voice Search">
+                            <i data-lucide="mic"></i>
+                        </button>
+
+                        <textarea id="chat-input" placeholder="Message Aura..." rows="1"></textarea>
+
                         <button class="send-btn" id="send-btn" disabled>
-                            <i data-lucide="arrow-up"></i>
+                            <i data-lucide="zap"></i>
                         </button>
                     </div>
-                    <p class="input-footer">Aura leverages multiple agents to research, plan, and code.</p>
+                    <p class="input-footer">Aura orchestrates research, planning, and implementation agents.</p>
                 </div>
             </footer>
         </main>

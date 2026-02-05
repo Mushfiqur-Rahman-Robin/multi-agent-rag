@@ -6,7 +6,8 @@ from langchain_core.messages import SystemMessage, ToolMessage
 
 def coding_agent(state):
     logger.info("Coding agent initiated.")
-    llm = ChatOpenAI(model=CODER_MODEL, openai_api_key=OPENAI_API_KEY)
+    selected_model = state.get("model") or CODER_MODEL
+    llm = ChatOpenAI(model=selected_model, openai_api_key=OPENAI_API_KEY)
     llm_with_tools = llm.bind_tools([python_repl])
     
     plan_context = state.get("plan", "No plan available.")

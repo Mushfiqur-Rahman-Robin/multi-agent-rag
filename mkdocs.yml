@@ -1,0 +1,20 @@
+site_name: Aura - Multi-Agent RAG
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: deep purple
+    accent: deep purple
+  features:
+    - navigation.tabs
+    - content.code.copy
+    - search.highlight
+
+nav:
+  - Home: README.md
+  - Architecture: ARCHITECTURE.md
+  - Setup Guide: docs/setup.md
+  - API Reference: docs/api.md
+
+plugins:
+  - search

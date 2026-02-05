@@ -7,7 +7,8 @@ from src.multi_agent_rag.core.logging_config import logger
 
 def router_node(state):
     logger.info("Router node evaluating intent.")
-    llm = ChatOpenAI(model=DEFAULT_MODEL, openai_api_key=OPENAI_API_KEY)
+    selected_model = state.get("model") or DEFAULT_MODEL
+    llm = ChatOpenAI(model=selected_model, openai_api_key=OPENAI_API_KEY)
     
     last_message = state["messages"][-1].content if state["messages"] else ""
     
@@ -56,7 +57,8 @@ def router_node(state):
 
 def direct_responder(state):
     logger.info("Direct responder activated.")
-    llm = ChatOpenAI(model=DEFAULT_MODEL, openai_api_key=OPENAI_API_KEY)
+    selected_model = state.get("model") or DEFAULT_MODEL
+    llm = ChatOpenAI(model=selected_model, openai_api_key=OPENAI_API_KEY)
     
     messages = [
         SystemMessage(content="You are a helpful assistant. Provide a direct, concise response to the user's inquiry.")

@@ -6,7 +6,8 @@ from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 def research_agent(state):
     logger.info("Research agent initiated.")
-    llm = ChatOpenAI(model=SEARCH_MODEL, openai_api_key=OPENAI_API_KEY)
+    selected_model = state.get("model") or SEARCH_MODEL
+    llm = ChatOpenAI(model=selected_model, openai_api_key=OPENAI_API_KEY)
     llm_with_tools = llm.bind_tools([google_search])
     
     messages = [

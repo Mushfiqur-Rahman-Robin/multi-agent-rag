@@ -10,6 +10,7 @@ from typing import List, Optional
 from pathlib import Path
 import shutil
 import uuid
+from fastapi.responses import FileResponse, StreamingResponse
 import os
 
 router = APIRouter()
@@ -26,6 +27,7 @@ def get_chat_service(db: AsyncSession = Depends(get_db)):
 async def chat(
     message: str = Form(...),
     thread_id: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None),
     service: ChatService = Depends(get_chat_service)
 ):
@@ -37,7 +39,7 @@ async def chat(
                 shutil.copyfileobj(file.file, buffer)
             saved_files.append(str(file_path))
 
-    t_id, response = await service.run_chat_flow(message, thread_id, saved_files)
+    t_id, response = await service.run_chat_flow(message, thread_id, saved_files, model=model)
     
     # Cleanup
     import os
@@ -46,6 +48,27 @@ async def chat(
         except: pass
 
     return {"thread_id": t_id, "response": response}
+
+@router.post("/chat/stream")
+async def chat_stream(
+    message: str = Form(...),
+    thread_id: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
+    files: Optional[List[UploadFile]] = File(None),
+    service: ChatService = Depends(get_chat_service)
+):
+    saved_files = []
+    if files:
+        for file in files:
+            file_path = UPLOAD_DIR / f"{uuid.uuid4()}_{file.filename}"
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            saved_files.append(str(file_path))
+
+    return StreamingResponse(
+        service.stream_chat_flow(message, thread_id, saved_files, model=model),
+        media_type="text/event-stream"
+    )
 
 @router.get("/sessions", response_model=List[Conversation])
 async def list_sessions(service: ChatService = Depends(get_chat_service)):

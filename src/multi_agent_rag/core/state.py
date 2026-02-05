@@ -1,4 +1,4 @@
-from typing import TypedDict, Annotated, List, Union
+from typing import TypedDict, Annotated, List, Union, Optional
 import operator
 from langchain_core.messages import BaseMessage
 
@@ -11,3 +11,4 @@ class AgentState(TypedDict):
     final_response: str
     next_step: str
     files: List[str]  # Paths to uploaded files
+    model: Optional[str]  # User-selected model

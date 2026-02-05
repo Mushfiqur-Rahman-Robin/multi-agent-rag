@@ -22,7 +22,7 @@ class ChatService:
     async def delete_session(self, thread_id: str):
         await self.repository.delete_conversation(thread_id)
 
-    async def run_chat_flow(self, message: str, thread_id: Optional[str], files: List[str]):
+    async def run_chat_flow(self, message: str, thread_id: Optional[str], files: List[str], model: Optional[str] = None):
         logger.info(f"Initiating chat flow for message: '{message[:50]}...' (Thread: {thread_id})")
         
         if not thread_id:
@@ -72,7 +72,8 @@ class ChatService:
             "thought": "Thinking...",
             "final_response": "",
             "next_step": "",
-            "files": files
+            "files": files,
+            "model": model
         }
         
         logger.info(f"Invoking Multi-Agent Graph for thread {thread_id}...")
@@ -116,3 +117,69 @@ class ChatService:
             logger.error(f"Persistence error: {str(e)}", exc_info=True)
 
         return thread_id, ai_content
+
+    async def stream_chat_flow(self, message: str, thread_id: Optional[str], files: List[str], model: Optional[str] = None):
+        if not thread_id:
+            thread_id = str(uuid.uuid4())
+            await self.repository.create_conversation(thread_id, message[:50])
+
+        db_messages = await self.repository.get_messages(thread_id)
+        history = []
+        for m in db_messages:
+            raw_content = m.content
+            content_obj = None
+            if isinstance(raw_content, dict):
+                content_obj = raw_content
+            elif isinstance(raw_content, str):
+                try:
+                    content_obj = json.loads(raw_content)
+                except Exception:
+                    content_obj = raw_content
+
+            if m.role == "human":
+                msg_text = str(content_obj) if not isinstance(content_obj, dict) else content_obj.get("message", str(content_obj))
+                history.append(HumanMessage(content=msg_text))
+            else:
+                if isinstance(content_obj, dict):
+                    msg_text = content_obj.get("response") or content_obj.get("code") or json.dumps(content_obj)
+                else:
+                    msg_text = str(content_obj)
+                history.append(AIMessage(content=msg_text))
+
+        human_msg = create_multimodal_message(message, files)
+        initial_state = {
+            "messages": history + [human_msg],
+            "research_output": "",
+            "plan": "",
+            "code": "",
+            "thought": "Aura is orchestrating agents...",
+            "final_response": "",
+            "next_step": "",
+            "files": files,
+            "model": model
+        }
+
+        # Persist human message early
+        await self.repository.add_message(thread_id, "human", message)
+
+        last_state = initial_state
+        async for output in self.graph.astream(initial_state):
+            # output is a dict like {'node_name': {state_updates}}
+            for key, val in output.items():
+                last_state.update(val)
+                # Filter out non-serializable objects (like LangChain messages)
+                serializable_update = {k: v for k, v in val.items() if k != "messages"}
+                # Stream the update to frontend
+                yield f"data: {json.dumps({'thread_id': thread_id, 'update': serializable_update})}\n\n"
+
+        # Map final results
+        ai_content = {
+            "thought": last_state.get("thought", ""),
+            "research": last_state.get("research_output", ""),
+            "plan": last_state.get("plan", ""),
+            "code": last_state.get("code", ""),
+            "response": last_state.get("final_response", "") or "Stage completed."
+        }
+        
+        await self.repository.add_message(thread_id, "ai", ai_content)
+        yield f"data: {json.dumps({'thread_id': thread_id, 'final': ai_content})}\n\n"
