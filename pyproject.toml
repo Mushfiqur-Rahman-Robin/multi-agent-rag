@@ -39,6 +39,7 @@ dependencies = [
     "slowapi>=0.1.9",
     "aiofiles>=25.1.0",
     "docx2txt>=0.9",
+    "mkdocs-material>=9.7.1",
 ]
 
 [build-system]

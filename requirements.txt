@@ -32,8 +32,12 @@ attrs==25.4.0
     #   aiohttp
     #   jsonschema
     #   referencing
+babel==2.18.0
+    # via mkdocs-material
 backoff==2.2.1
     # via posthog
+backrefs==6.1
+    # via mkdocs-material
 bcrypt==5.0.0
     # via chromadb
 build==1.4.0
@@ -56,9 +60,12 @@ chromadb==1.4.1
     #   langchain-chroma
 click==8.3.1
     # via
+    #   mkdocs
     #   typer
     #   typer-slim
     #   uvicorn
+colorama==0.4.6
+    # via mkdocs-material
 coloredlogs==15.0.1
     # via onnxruntime
 coverage==7.13.2
@@ -100,6 +107,8 @@ frozenlist==1.8.0
     #   aiosignal
 fsspec==2026.1.0
     # via huggingface-hub
+ghp-import==2.1.0
+    # via mkdocs
 google-ai-generativelanguage==0.6.15
     # via google-generativeai
 google-api-core==2.29.0
@@ -220,6 +229,10 @@ importlib-resources==6.5.2
     # via chromadb
 iniconfig==2.3.0
     # via pytest
+jinja2==3.1.6
+    # via
+    #   mkdocs
+    #   mkdocs-material
 jiter==0.13.0
     # via openai
 jsonpatch==1.33
@@ -284,14 +297,36 @@ limits==5.8.0
     # via slowapi
 mako==1.3.10
     # via alembic
+markdown==3.10.1
+    # via
+    #   mkdocs
+    #   mkdocs-material
+    #   pymdown-extensions
 markdown-it-py==4.0.0
     # via rich
 markupsafe==3.0.3
-    # via mako
+    # via
+    #   jinja2
+    #   mako
+    #   mkdocs
 marshmallow==3.26.2
     # via dataclasses-json
 mdurl==0.1.2
     # via markdown-it-py
+mergedeep==1.3.4
+    # via
+    #   mkdocs
+    #   mkdocs-get-deps
+mkdocs==1.6.1
+    # via
+    #   lean-multi-agent-rag (pyproject.toml)
+    #   mkdocs-material
+mkdocs-get-deps==0.2.0
+    # via mkdocs
+mkdocs-material==9.7.1
+    # via lean-multi-agent-rag (pyproject.toml)
+mkdocs-material-extensions==1.3.1
+    # via mkdocs-material
 mmh3==5.2.0
     # via chromadb
 mpmath==1.3.0
@@ -357,12 +392,19 @@ packaging==26.0
     #   langsmith
     #   limits
     #   marshmallow
+    #   mkdocs
     #   onnxruntime
     #   pytest
+paginate==0.5.7
+    # via mkdocs-material
+pathspec==1.0.4
+    # via mkdocs
 pillow==12.1.0
     # via lean-multi-agent-rag (pyproject.toml)
 platformdirs==4.5.1
-    # via virtualenv
+    # via
+    #   mkdocs-get-deps
+    #   virtualenv
 pluggy==1.6.0
     # via
     #   pytest
@@ -426,8 +468,11 @@ pydantic-settings==2.12.0
     # via langchain-community
 pygments==2.19.2
     # via
+    #   mkdocs-material
     #   pytest
     #   rich
+pymdown-extensions==10.20.1
+    # via mkdocs-material
 pyparsing==3.3.2
     # via httplib2
 pypdf==6.6.2
@@ -447,6 +492,7 @@ pytest-cov==7.0.0
     # via lean-multi-agent-rag (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via
+    #   ghp-import
     #   google-cloud-bigquery
     #   kubernetes
     #   posthog
@@ -467,8 +513,14 @@ pyyaml==6.0.3
     #   langchain-classic
     #   langchain-community
     #   langchain-core
+    #   mkdocs
+    #   mkdocs-get-deps
     #   pre-commit
+    #   pymdown-extensions
+    #   pyyaml-env-tag
     #   uvicorn
+pyyaml-env-tag==1.1
+    # via mkdocs
 redis==7.1.0
     # via lean-multi-agent-rag (pyproject.toml)
 referencing==0.37.0
@@ -489,6 +541,7 @@ requests==2.32.5
     #   langchain-community
     #   langchain-tavily
     #   langsmith
+    #   mkdocs-material
     #   posthog
     #   requests-oauthlib
     #   requests-toolbelt
@@ -561,9 +614,7 @@ typer-slim==0.21.1
     # via huggingface-hub
 typing-extensions==4.15.0
     # via
-    #   aiosignal
     #   alembic
-    #   anyio
     #   chromadb
     #   fastapi
     #   google-cloud-aiplatform
@@ -580,10 +631,7 @@ typing-extensions==4.15.0
     #   opentelemetry-semantic-conventions
     #   pydantic
     #   pydantic-core
-    #   pytest-asyncio
-    #   referencing
     #   sqlalchemy
-    #   starlette
     #   typer
     #   typer-slim
     #   typing-inspect
@@ -612,6 +660,8 @@ uvloop==0.22.1
     # via uvicorn
 virtualenv==20.36.1
     # via pre-commit
+watchdog==6.0.0
+    # via mkdocs
 watchfiles==1.1.1
     # via uvicorn
 websocket-client==1.9.0
