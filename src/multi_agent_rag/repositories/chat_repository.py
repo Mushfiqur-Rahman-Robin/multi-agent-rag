@@ -116,3 +116,24 @@ class ChatRepository:
         if conv:
             await self.db.delete(conv)
             await self.db.commit()
+
+    async def record_cache_stats(self, hits: int, misses: int):
+        """
+        Record a snapshot of the current cache hit/miss stats.
+        """
+        from src.multi_agent_rag.models.chat import CacheAudit
+
+        audit = CacheAudit(hits=hits, misses=misses)
+        self.db.add(audit)
+        await self.db.commit()
+        return audit
+
+    async def get_cache_audit_history(self, limit: int = 100) -> list:
+        """
+        Get historical cache audit snapshots.
+        """
+        from src.multi_agent_rag.models.chat import CacheAudit
+
+        stmt = select(CacheAudit).order_by(CacheAudit.created_at.desc()).limit(limit)
+        result = await self.db.execute(stmt)
+        return result.scalars().all()

@@ -81,9 +81,14 @@ def research_agent(state: dict) -> dict:
     research_summary = ""
     thought = "Gathering information..."
 
+    import time
+
+    start_time = time.time()
     for i in range(max_iterations):
         try:
+            iter_start = time.time()
             response = llm_with_tools.invoke(current_messages)
+            logger.info(f"LLM tool-call decision took {time.time() - iter_start:.2f}s")
             current_messages.append(response)
 
             if not response.tool_calls:
@@ -98,6 +103,7 @@ def research_agent(state: dict) -> dict:
                 tool_args = tool_call["args"]
 
                 try:
+                    tool_start = time.time()
                     if tool_name == "google_search":
                         logger.info(f"Executing google_search: {tool_args}")
                         result = google_search.invoke(tool_args)
@@ -106,6 +112,10 @@ def research_agent(state: dict) -> dict:
                         result = vector_search.invoke(tool_args)
                     else:
                         result = f"Unknown tool: {tool_name}"
+
+                    logger.info(
+                        f"Tool {tool_name} took {time.time() - tool_start:.2f}s"
+                    )
 
                     current_messages.append(
                         ToolMessage(content=str(result), tool_call_id=tool_call["id"])
@@ -130,14 +140,21 @@ def research_agent(state: dict) -> dict:
         Be thorough but concise. Do not use any tools."""
 
         try:
+            synth_start = time.time()
             final_synth = llm.invoke(
                 [*current_messages, SystemMessage(content=synthesis_prompt)]
+            )
+            logger.info(
+                f"Research final synthesis took {time.time() - synth_start:.2f}s"
             )
             research_summary = final_synth.content
             current_messages.append(final_synth)
         except Exception as e:
             logger.error(f"Research synthesis failed: {e}")
             research_summary = "Unable to synthesize research findings."
+
+    total_research_time = time.time() - start_time
+    logger.info(f"Total research workflow took {total_research_time:.2f}s")
 
     # Cache the research results
     if cache_service and cache_service.is_available and user_query and research_summary:

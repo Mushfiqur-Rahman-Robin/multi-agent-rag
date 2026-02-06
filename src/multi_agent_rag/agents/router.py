@@ -169,10 +169,11 @@ def direct_responder(state: dict) -> dict:
         combined_context = "\n\n---\n\n".join(context_parts)
         system_prompt += (
             f"\n\nAVAILABLE CONTEXT FROM THIS SESSION:\n{combined_context}\n\n"
-            "INSTRUCTIONS:\n"
-            "1. provide a comprehensive answer using the context above.\n"
-            "2. IF THE USER ASKED FOR CODE AND IT IS AVAILABLE IN THE CONTEXT, YOU MUST PROVIDE IT IN YOUR RESPONSE.\n"
-            "3. Reference findings from research or plans where relevant."
+            "CRITICAL INSTRUCTIONS:\n"
+            "1. PROVIDE A COMPREHENSIVE ANSWER using all the context provided above.\n"
+            "2. **MANDATORY**: IF 'IMPLEMENTATION CODE' IS PRESENT IN THE CONTEXT ABOVE, YOU MUST INCLUDE THE ENTIRE CODE BLOCK IN YOUR FINAL RESPONSE. DO NOT SUMMARIZE OR OMIT THE CODE.\n"
+            "3. Reference findings from research or strategic plans where relevant to add value.\n"
+            "4. Use clear Markdown formatting with proper headings and code syntax highlighting."
         )
 
     messages = [SystemMessage(content=system_prompt)] + state["messages"]

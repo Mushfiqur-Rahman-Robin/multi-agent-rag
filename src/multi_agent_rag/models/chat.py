@@ -61,6 +61,18 @@ class Message(Base):
     conversation = relationship("Conversation", back_populates="messages")
 
 
+class CacheAudit(Base):
+    """
+    Model for tracking periodic snapshots of cache performance stats.
+    """
+
+    __tablename__ = "cache_audit"
+    id = Column(Integer, primary_key=True, index=True)
+    hits = Column(Integer, default=0, nullable=False)
+    misses = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 async def init_db():
     """
     Attempt to initialize and verify the database connection with retries.

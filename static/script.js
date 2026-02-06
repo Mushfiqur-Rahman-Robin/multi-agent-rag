@@ -27,6 +27,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentThreadId = null;
     let selectedFiles = [];
     let isRecording = false;
+    let isGenerating = false;
+    let API_KEY = "";
+    const commonHeaders = {};
+
+    // Load configuration from server
+    async function loadConfig() {
+        try {
+            const response = await fetch('/config');
+            const data = await response.json();
+            API_KEY = data.api_key;
+            commonHeaders['X-API-Key'] = API_KEY;
+            // Initial UI loads after config
+            loadSessions();
+        } catch (error) {
+            console.error('Failed to load application config:', error);
+        }
+    }
 
     // --- Knowledge Base Logic ---
     // --- Knowledge Base Logic ---
@@ -43,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadKbFiles() {
         kbStatusList.innerHTML = '<div class="kb-status-item">Loading files...</div>';
         try {
-            const response = await fetch('/knowledge/list');
+            const response = await fetch('/knowledge/list', { headers: commonHeaders });
             const data = await response.json();
             kbStatusList.innerHTML = '';
 
@@ -80,7 +97,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteKbFile(filename) {
         if (!confirm(`Delete ${filename} from knowledge base?`)) return;
         try {
-            const response = await fetch(`/knowledge/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+            const response = await fetch(`/knowledge/${encodeURIComponent(filename)}`, {
+                method: 'DELETE',
+                headers: commonHeaders
+            });
             if (response.ok) {
                 loadKbFiles();
             } else {
@@ -104,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', '/knowledge/upload', true);
+                xhr.setRequestHeader('X-API-Key', API_KEY);
 
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
@@ -137,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Core Functions ---
     async function loadSessions() {
         try {
-            const response = await fetch('/sessions');
+            const response = await fetch('/sessions', { headers: commonHeaders });
             const sessions = await response.json();
             renderSessionList(sessions);
         } catch (error) {
@@ -177,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         messagesContainer.innerHTML = '<div class="agent-thought" style="margin: 2rem;"><i data-lucide="loader"></i><span>Resuming thread...</span></div>';
 
         try {
-            const response = await fetch(`/sessions/${threadId}`);
+            const response = await fetch(`/sessions/${threadId}`, { headers: commonHeaders });
             const messages = await response.json();
             messagesContainer.innerHTML = '';
             messages.forEach(msg => {
@@ -198,7 +219,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteSession(threadId) {
         if (!confirm('Permanently delete this thread?')) return;
         try {
-            const res = await fetch(`/sessions/${threadId}`, { method: 'DELETE' });
+            const res = await fetch(`/sessions/${threadId}`, {
+                method: 'DELETE',
+                headers: commonHeaders
+            });
             if (res.ok) {
                 if (currentThreadId === threadId) resetChat();
                 loadSessions();
@@ -307,14 +331,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function sendMessage() {
+        if (isGenerating) return;
         const text = chatInput.value.trim();
         const model = modelSelect.value;
         if (!text && selectedFiles.length === 0) return;
 
+        isGenerating = true;
         chatInput.value = '';
         chatInput.style.height = 'auto';
         chatInput.disabled = true;
         sendBtn.disabled = true;
+        chatInput.placeholder = "Aura is typing...";
+
         const tempFiles = [...selectedFiles];
         clearAttachments();
 
@@ -346,6 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/chat/stream', {
                 method: 'POST',
+                headers: commonHeaders,
                 body: formData
             });
 
@@ -438,7 +467,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error:', error);
             thinkingDiv.querySelector('.msg-content-wrapper').innerHTML = '<div class="agent-thought" style="color: var(--error)">Error communicating with Aura.</div>';
         } finally {
+            isGenerating = false;
             chatInput.disabled = false;
+            chatInput.placeholder = "Message Aura...";
             chatInput.focus();
             updateSendButtonState();
         }
@@ -497,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function updateSendButtonState() {
-        sendBtn.disabled = !chatInput.value.trim() && selectedFiles.length === 0;
+        sendBtn.disabled = isGenerating || (!chatInput.value.trim() && selectedFiles.length === 0);
     }
 
     function clearAttachments() {
@@ -509,5 +540,5 @@ document.addEventListener('DOMContentLoaded', () => {
         chatViewport.scrollTo({ top: chatViewport.scrollHeight, behavior: 'smooth' });
     }
 
-    loadSessions();
+    loadConfig();
 });

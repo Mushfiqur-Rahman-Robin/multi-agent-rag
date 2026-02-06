@@ -35,6 +35,7 @@ services:
 
   rag-system:
     build: .
+    image: multi-agent-rag-rag-system:${APP_VERSION:-latest}
     ports:
       - "${APP_PORT:-8000}:${APP_PORT:-8000}"
     env_file:

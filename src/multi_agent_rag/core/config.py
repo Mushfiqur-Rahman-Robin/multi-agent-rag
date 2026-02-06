@@ -11,6 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 # Application Settings
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")  # nosec
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
+APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 APP_RELOAD = os.getenv("APP_RELOAD", "true").lower() == "true"
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -21,15 +22,20 @@ ALLOWED_ORIGINS = [
 ]
 
 # Models
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")
-SEARCH_MODEL = os.getenv("SEARCH_MODEL", "gpt-4o-mini")
-PLANNER_MODEL = os.getenv("PLANNER_MODEL", "gpt-4o-mini")
-CODER_MODEL = os.getenv("CODER_MODEL", "gpt-4o-mini")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4.1-mini")
+SEARCH_MODEL = os.getenv("SEARCH_MODEL", "gpt-4.1-mini")
+PLANNER_MODEL = os.getenv("PLANNER_MODEL", "gpt-4.1-mini")
+CODER_MODEL = os.getenv("CODER_MODEL", "gpt-4.1-mini")
 VECTOR_MODEL = os.getenv("VECTOR_MODEL", "text-embedding-3-small")
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+APPLICATION_API_KEY = os.getenv("APPLICATION_API_KEY", "aura-default-key")
+
+# Rate Limiting
+RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+RATE_LIMIT_PER_MINUTE = os.getenv("RATE_LIMIT_PER_MINUTE", "20")
 
 # DB Settings (PostgreSQL)
 DB_USER = os.getenv("DB_USER", "postgres")
@@ -80,6 +86,8 @@ CACHE_INVALIDATE_ON_KB_UPDATE = (
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+APP_LOG_FILE = LOG_DIR / "app.log"
+ERROR_LOG_FILE = LOG_DIR / "error.log"
 
 # Context Management Settings
 MAX_HISTORY_MESSAGES = int(os.getenv("MAX_HISTORY_MESSAGES", "20"))

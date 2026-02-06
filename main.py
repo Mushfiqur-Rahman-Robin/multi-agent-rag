@@ -13,6 +13,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from src.multi_agent_rag.api.routes import router
 from src.multi_agent_rag.core.config import (
@@ -21,6 +23,7 @@ from src.multi_agent_rag.core.config import (
     APP_PORT,
     APP_RELOAD,
 )
+from src.multi_agent_rag.core.limiter import limiter
 from src.multi_agent_rag.core.logging_config import logger, request_id_var
 from src.multi_agent_rag.models.chat import init_db
 
@@ -35,6 +38,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Modular Multi-Agent RAG", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
