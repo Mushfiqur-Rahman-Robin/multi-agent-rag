@@ -217,8 +217,7 @@ chroma_db/*
 extracted_images/*
 *.json
 *.sqlite3
+user_upload/
 
-
-neo4j_credential(keep_kawsar).txt
 folder_tree.py
 codebase_content_frontend.txt

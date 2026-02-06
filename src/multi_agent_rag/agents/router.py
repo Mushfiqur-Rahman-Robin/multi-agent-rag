@@ -144,8 +144,16 @@ async def direct_responder(state: dict) -> dict:
     logger.info("Direct responder activated.")
     selected_model = state.get("model") or DEFAULT_MODEL
     llm = ChatOpenAI(
-        model=selected_model, openai_api_key=OPENAI_API_KEY, temperature=0.7
+        model=selected_model, openai_api_key=OPENAI_API_KEY, temperature=0.2
     )
+
+    messages = state.get("messages", [])
+    # Find the latest human message for explicit targeting in the prompt
+    current_human_query = "the last request"
+    for msg in reversed(messages):
+        if getattr(msg, "type", "unknown") == "human":
+            current_human_query = get_text_content(msg)
+            break
 
     # Build comprehensive context from available state
     context_parts = []
@@ -168,12 +176,14 @@ async def direct_responder(state: dict) -> dict:
     if context_parts:
         combined_context = "\n\n---\n\n".join(context_parts)
         system_prompt += (
-            f"\n\nAVAILABLE CONTEXT FROM THIS SESSION:\n{combined_context}\n\n"
+            f"\n\nCURRENT USER QUERY: {current_human_query}\n\n"
+            f"AVAILABLE CONTEXT FOR THIS SPECIFIC QUERY:\n{combined_context}\n\n"
             "CRITICAL INSTRUCTIONS:\n"
-            "1. PROVIDE A COMPREHENSIVE ANSWER using all the context provided above.\n"
-            "2. **MANDATORY**: IF 'IMPLEMENTATION CODE' IS PRESENT IN THE CONTEXT ABOVE, YOU MUST INCLUDE THE ENTIRE CODE BLOCK IN YOUR FINAL RESPONSE. DO NOT SUMMARIZE OR OMIT THE CODE.\n"
-            "3. Reference findings from research or strategic plans where relevant to add value.\n"
-            "4. Use clear Markdown formatting with proper headings and code syntax highlighting."
+            "1. FOCUS EXCLUSIVELY on answering the CURRENT USER QUERY provided above.\n"
+            "2. IGNORE any unrelated topics from the conversation history unless they are directly relevant to this specific query.\n"
+            "3. **MANDATORY**: IF 'IMPLEMENTATION CODE' IS PRESENT IN THE CONTEXT ABOVE, YOU MUST INCLUDE THE ENTIRE CODE BLOCK IN YOUR FINAL RESPONSE.\n"
+            "4. References findings from research or strategic plans provided in the context.\n"
+            "5. User clear Markdown formatting."
         )
 
     messages = [SystemMessage(content=system_prompt)] + state["messages"]

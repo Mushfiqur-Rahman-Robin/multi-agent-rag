@@ -30,6 +30,14 @@ class ChatRepository:
         await self.db.commit()
         return new_conv
 
+    async def get_conversation(self, thread_id: str) -> Conversation | None:
+        """
+        Retrieve a specific conversation by thread_id.
+        """
+        stmt = select(Conversation).where(Conversation.thread_id == thread_id)
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_conversations(self) -> list[Conversation]:
         """
         Retrieve all conversations sorted by creation date.

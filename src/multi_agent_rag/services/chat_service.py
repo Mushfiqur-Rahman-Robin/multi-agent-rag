@@ -136,12 +136,21 @@ class ChatService:
         model: str | None = None,
     ):
         """Executes a chat interaction synchronously with caching."""
+        # Ensure conversation exists
         if not thread_id:
             thread_id = str(uuid.uuid4())
             await self.repository.create_conversation(thread_id, "New Chat")
             await self._generate_and_update_title(
                 thread_id, message, model or DEFAULT_MODEL
             )
+        else:
+            # Check if thread exists in DB (it might have been generated in the route)
+            existing = await self.repository.get_conversation(thread_id)
+            if not existing:
+                await self.repository.create_conversation(thread_id, "New Chat")
+                await self._generate_and_update_title(
+                    thread_id, message, model or DEFAULT_MODEL
+                )
 
         db_messages = await self.repository.get_messages(thread_id)
         history = self._build_context_history(db_messages)
@@ -227,12 +236,21 @@ class ChatService:
         model: str | None = None,
     ):
         """Executes a chat interaction and streams updates via SSE with caching."""
+        # Ensure conversation exists
         if not thread_id:
             thread_id = str(uuid.uuid4())
             await self.repository.create_conversation(thread_id, "New Chat")
             await self._generate_and_update_title(
                 thread_id, message, model or DEFAULT_MODEL
             )
+        else:
+            # Check if thread exists in DB
+            existing = await self.repository.get_conversation(thread_id)
+            if not existing:
+                await self.repository.create_conversation(thread_id, "New Chat")
+                await self._generate_and_update_title(
+                    thread_id, message, model or DEFAULT_MODEL
+                )
 
         db_messages = await self.repository.get_messages(thread_id)
         history = self._build_context_history(db_messages)
