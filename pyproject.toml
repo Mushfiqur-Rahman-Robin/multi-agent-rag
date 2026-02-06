@@ -38,6 +38,7 @@ dependencies = [
     "tenacity>=8.0.0",
     "slowapi>=0.1.9",
     "aiofiles>=25.1.0",
+    "docx2txt>=0.9",
 ]
 
 [build-system]

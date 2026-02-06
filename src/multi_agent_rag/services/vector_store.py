@@ -10,7 +10,7 @@ from pathlib import Path
 
 import anyio
 from langchain_chroma import Chroma
-from langchain_community.document_loaders import PyPDFLoader, TextLoader
+from langchain_community.document_loaders import Docx2txtLoader, PyPDFLoader, TextLoader
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -63,6 +63,8 @@ class VectorStoreService:
         try:
             if path.suffix.lower() == ".pdf":
                 loader = PyPDFLoader(file_path)
+            elif path.suffix.lower() in [".docx", ".doc"]:
+                loader = Docx2txtLoader(file_path)
             else:
                 loader = TextLoader(file_path)
 

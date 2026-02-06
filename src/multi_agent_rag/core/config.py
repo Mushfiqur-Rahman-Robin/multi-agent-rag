@@ -60,8 +60,18 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
 
 # Storage Settings
 UPLOAD_DIR = BASE_DIR / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
+USER_UPLOAD_DIR = BASE_DIR / "user_upload"
+USER_UPLOAD_IMG_DIR = USER_UPLOAD_DIR / "img"
+USER_UPLOAD_FILE_DIR = USER_UPLOAD_DIR / "file"
+
+for d in [UPLOAD_DIR, USER_UPLOAD_DIR, USER_UPLOAD_IMG_DIR, USER_UPLOAD_FILE_DIR]:
+    d.mkdir(exist_ok=True)
+
 UPLOAD_CLEANUP = os.getenv("UPLOAD_CLEANUP", "true").lower() == "true"
+
+# Size Limits (in bytes)
+CHAT_FILE_SIZE_LIMIT = 2 * 1024 * 1024  # 2MB
+KB_FILE_SIZE_LIMIT = 10 * 1024 * 1024  # 10MB
 
 # Cache Settings (Redis Stack)
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")

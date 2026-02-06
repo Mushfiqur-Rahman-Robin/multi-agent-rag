@@ -118,7 +118,21 @@ document.addEventListener('DOMContentLoaded', () => {
         kbProgressBar.style.width = '0%';
 
         const formData = new FormData();
-        Array.from(files).forEach(file => formData.append('files', file));
+        const MAX_KB_SIZE = 10 * 1024 * 1024; // 10MB
+        let oversized = false;
+
+        Array.from(files).forEach(file => {
+            if (file.size > MAX_KB_SIZE) {
+                alert(`File ${file.name} exceeds 10MB limit.`);
+                oversized = true;
+            }
+            formData.append('files', file);
+        });
+
+        if (oversized && files.length === 1) {
+            kbProgressContainer.style.display = 'none';
+            return;
+        }
 
         try {
             const data = await new Promise((resolve, reject) => {
@@ -477,18 +491,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Voice Logic ---
     function startVoiceInput() {
+        if (isRecording) return;
+
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            alert("Voice recognition not supported.");
+            alert("Voice recognition not supported in this browser.");
             return;
         }
 
         const recognition = new SpeechRecognition();
         recognition.lang = 'en-US';
-        recognition.onstart = () => { isRecording = true; voiceBtn.classList.add('recording'); };
-        recognition.onresult = (e) => { chatInput.value = e.results[0][0].transcript; updateSendButtonState(); };
-        recognition.onend = () => { isRecording = false; voiceBtn.classList.remove('recording'); };
-        recognition.start();
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            isRecording = true;
+            voiceBtn.classList.add('recording');
+            console.log("Voice recording started");
+        };
+
+        recognition.onresult = (e) => {
+            const transcript = e.results[0][0].transcript;
+            chatInput.value = transcript;
+            updateSendButtonState();
+            // Automatically expand textarea
+            chatInput.style.height = 'auto';
+            chatInput.style.height = (chatInput.scrollHeight) + 'px';
+        };
+
+        recognition.onerror = (e) => {
+            console.error("Speech recognition error:", e.error);
+            isRecording = false;
+            voiceBtn.classList.remove('recording');
+            if (e.error === 'not-allowed') {
+                alert("Microphone access was denied. Please ensure you are using HTTPS or localhost and have granted permission.");
+            } else {
+                alert("Voice input failed: " + e.error);
+            }
+        };
+
+        recognition.onend = () => {
+            isRecording = false;
+            voiceBtn.classList.remove('recording');
+            console.log("Voice recording ended");
+        };
+
+        try {
+            recognition.start();
+        } catch (err) {
+            console.error("Failed to start recognition:", err);
+            isRecording = false;
+            voiceBtn.classList.remove('recording');
+        }
     }
 
     // --- Listeners ---
@@ -505,7 +559,12 @@ document.addEventListener('DOMContentLoaded', () => {
     attachBtn.onclick = () => fileInput.click();
 
     fileInput.onchange = (e) => {
+        const MAX_CHAT_SIZE = 2 * 1024 * 1024; // 2MB
         Array.from(e.target.files).forEach(file => {
+            if (file.size > MAX_CHAT_SIZE) {
+                alert(`File ${file.name} exceeds 2MB limit.`);
+                return;
+            }
             selectedFiles.push(file);
             const reader = new FileReader();
             reader.onload = (ev) => {

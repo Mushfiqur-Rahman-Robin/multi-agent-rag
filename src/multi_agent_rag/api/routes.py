@@ -25,8 +25,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.multi_agent_rag.core.config import (
     APPLICATION_API_KEY,
+    CHAT_FILE_SIZE_LIMIT,
+    KB_FILE_SIZE_LIMIT,
     RATE_LIMIT_PER_MINUTE,
-    UPLOAD_DIR,
+    USER_UPLOAD_FILE_DIR,
+    USER_UPLOAD_IMG_DIR,
 )
 from src.multi_agent_rag.core.limiter import limiter
 from src.multi_agent_rag.core.logging_config import logger
@@ -66,10 +69,24 @@ async def upload_knowledge(files: list[UploadFile] = File(...)):
     Upload and index documents into the Knowledge Base.
     """
     results = []
+    kb_dir = USER_UPLOAD_FILE_DIR / "kb"
+    kb_dir.mkdir(exist_ok=True)
+
     for file in files:
-        file_path = UPLOAD_DIR / f"kb_{uuid.uuid4()}_{file.filename}"
+        # Check file size (10MB)
+        content = await file.read()
+        if len(content) > KB_FILE_SIZE_LIMIT:
+            results.append(
+                {
+                    "filename": file.filename,
+                    "success": False,
+                    "error": "File exceeds 10MB limit",
+                }
+            )
+            continue
+
+        file_path = kb_dir / f"kb_{uuid.uuid4()}_{file.filename}"
         async with aiofiles.open(file_path, "wb") as buffer:
-            content = await file.read()
             await buffer.write(content)
 
         success = await vector_store_service.ingest_file(str(file_path))
@@ -162,11 +179,27 @@ async def chat(
     Synchronous chat endpoint. Returns the complete AI response after execution.
     """
     saved_files = []
+    if not thread_id:
+        thread_id = str(uuid.uuid4())
+
     if files:
         for file in files:
-            file_path = UPLOAD_DIR / f"{uuid.uuid4()}_{file.filename}"
+            content = await file.read()
+            if len(content) > CHAT_FILE_SIZE_LIMIT:
+                logger.warning(f"File {file.filename} skipped: exceeds 2MB limit")
+                continue
+
+            # Determine subdirectory based on mimetype
+            sub_dir = (
+                USER_UPLOAD_IMG_DIR
+                if file.content_type.startswith("image/")
+                else USER_UPLOAD_FILE_DIR
+            )
+            session_dir = sub_dir / thread_id
+            session_dir.mkdir(exist_ok=True, parents=True)
+
+            file_path = session_dir / f"{uuid.uuid4()}_{file.filename}"
             async with aiofiles.open(file_path, "wb") as buffer:
-                content = await file.read()
                 await buffer.write(content)
             saved_files.append(str(file_path))
 
@@ -174,7 +207,8 @@ async def chat(
         message, thread_id, saved_files, model=model
     )
 
-    # Cleanup temporary files
+    # Cleanup temporary files (if UPLOAD_CLEANUP is enabled)
+    # Note: We usually keep images if we want to view them later, but here we follow general cleanup
     for f in saved_files:
         try:
             await anyio.to_thread.run_sync(os.remove, f)
@@ -199,11 +233,26 @@ async def chat_stream(
     Real-time streaming chat endpoint using SSE.
     """
     saved_files = []
+    if not thread_id:
+        thread_id = str(uuid.uuid4())
+
     if files:
         for file in files:
-            file_path = UPLOAD_DIR / f"{uuid.uuid4()}_{file.filename}"
+            content = await file.read()
+            if len(content) > CHAT_FILE_SIZE_LIMIT:
+                logger.warning(f"File {file.filename} skipped: exceeds 2MB limit")
+                continue
+
+            sub_dir = (
+                USER_UPLOAD_IMG_DIR
+                if file.content_type.startswith("image/")
+                else USER_UPLOAD_FILE_DIR
+            )
+            session_dir = sub_dir / thread_id
+            session_dir.mkdir(exist_ok=True, parents=True)
+
+            file_path = session_dir / f"{uuid.uuid4()}_{file.filename}"
             async with aiofiles.open(file_path, "wb") as buffer:
-                content = await file.read()
                 await buffer.write(content)
             saved_files.append(str(file_path))
 

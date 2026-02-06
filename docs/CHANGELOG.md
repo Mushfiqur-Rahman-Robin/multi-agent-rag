@@ -18,6 +18,10 @@ All notable changes to this project will be documented in this file.
   - Converted `create_multimodal_message` and `encode_image` to asynchronous functions using `aiofiles`.
   - Replaced blocking file I/O in API routes with asynchronous `aiofiles` operations.
   - **Fixed Tools Protocol**: Converted `google_search` and `vector_search` tools to asynchronous (`async def`) to correctly await service calls, fixing the issue where Knowledge Base results were returning coroutine objects instead of data.
+  - **Structured Storage & Limits**: Implemented strict file size limits and organized storage.
+    - Added user-facing alerts for file size limits (2MB for chat, 10MB for Knowledge Base).
+    - Structured `user_upload` directory into `img/` and `file/` subfolders, organized by session (thread) ID.
+    - Added backend validation for file sizes in both sync and stream chat endpoints.
   - Initialized `CacheService` within the FastAPI lifespan for proper resource management.
 
 ### Fixed

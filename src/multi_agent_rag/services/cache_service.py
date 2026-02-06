@@ -141,7 +141,7 @@ class CacheService:
         try:
             value = await self._client.get(key)
             if value:
-                logger.debug(f"Cache HIT: {key}")
+                logger.info(f"CACHE HIT: {key}")
                 await self._track_hit()
                 return json.loads(value)
             logger.debug(f"Cache MISS: {key}")
