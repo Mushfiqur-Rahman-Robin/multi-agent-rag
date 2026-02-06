@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
   - Mounts `/user_upload` for direct file serving.
   - Persists file URLs in conversation history.
   - Enhanced UI to render PDFs and files natively in the chat history.
+- **Content Extraction**: Added backend support to extract text from PDF and DOCX files for LLM context inclusion.
 
 ### Changed
 - **Async/Await Optimization**: Audited the entire codebase for correct asynchronous usage.
