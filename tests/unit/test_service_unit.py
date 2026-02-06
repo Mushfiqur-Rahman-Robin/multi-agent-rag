@@ -20,7 +20,7 @@ async def test_run_chat_flow_new_session(chat_service, mock_repo):
     message = "Hello"
     thread_id = None
     files = []
-    
+
     # Mock graph.ainvoke
     chat_service.graph.ainvoke.return_value = {
         "thought": "Direct answer",
@@ -29,16 +29,16 @@ async def test_run_chat_flow_new_session(chat_service, mock_repo):
         "plan": "",
         "code": ""
     }
-    
+
     # Mock repo.get_messages and repo.create_conversation
     mock_repo.get_messages.return_value = []
     mock_repo.create_conversation.return_value = AsyncMock()
-    
+
     new_thread_id, ai_content = await chat_service.run_chat_flow(message, thread_id, files)
-    
+
     assert new_thread_id is not None
     assert ai_content["response"] == "Hi there!"
-    
+
     mock_repo.create_conversation.assert_called_once()
     mock_repo.add_message.assert_any_call(new_thread_id, "human", message)
     mock_repo.add_message.assert_any_call(new_thread_id, "ai", ai_content)
@@ -46,9 +46,9 @@ async def test_run_chat_flow_new_session(chat_service, mock_repo):
 @pytest.mark.asyncio
 async def test_get_all_sessions(chat_service, mock_repo):
     mock_repo.get_conversations.return_value = [{"thread_id": "1", "title": "test"}]
-    
+
     sessions = await chat_service.get_all_sessions()
-    
+
     assert len(sessions) == 1
     assert sessions[0]["thread_id"] == "1"
     mock_repo.get_conversations.assert_called_once()

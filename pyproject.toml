@@ -1,7 +1,7 @@
 [project]
 name = "lean-multi-agent-rag"
 version = "0.1.0"
-description = "A lean multi-agent RAG system with OpenAI GPT-4o"
+description = "A lean multi-agent RAG system with OpenAI GPT-4.1-mini"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -29,6 +29,13 @@ dependencies = [
     "pytest-asyncio",
     "pytest-cov",
     "httpx",
+    "chromadb",
+    "langchain-chroma",
+    "pypdf",
+    "nest-asyncio",
+    "pre-commit>=4.5.1",
+    "redis>=5.0.0",
+    "tenacity>=8.0.0",
 ]
 
 [build-system]

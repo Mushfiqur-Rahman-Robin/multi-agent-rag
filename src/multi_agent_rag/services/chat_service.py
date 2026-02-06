@@ -1,14 +1,41 @@
+"""
+Chat service module for orchestrating multi-agent interactions.
+
+Manages the lifecycle of a chat session, including database persistence,
+agent graph execution, and streaming responses.
+Integrated with Redis for response caching and context windowing for persistent memory.
+"""
+
+import hashlib
 import json
 import uuid
-from typing import List, Optional
-from src.multi_agent_rag.repositories.chat_repository import ChatRepository
-from src.multi_agent_rag.agents.graph import create_multi_agent_graph
-from src.multi_agent_rag.core.multimodal import create_multimodal_message
-from langchain_core.messages import HumanMessage, AIMessage
 
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_openai import ChatOpenAI
+
+from src.multi_agent_rag.agents.graph import create_multi_agent_graph
+from src.multi_agent_rag.core.config import (
+    DEFAULT_MODEL,
+    MAX_CONTEXT_CHARS,
+    MAX_HISTORY_MESSAGES,
+    OPENAI_API_KEY,
+)
 from src.multi_agent_rag.core.logging_config import logger
+from src.multi_agent_rag.core.multimodal import create_multimodal_message
+from src.multi_agent_rag.repositories.chat_repository import ChatRepository
+
+# Import cache service
+try:
+    from src.multi_agent_rag.services.cache_service import cache_service
+except ImportError:
+    cache_service = None
+
 
 class ChatService:
+    """
+    Service layer for managing chatbot interactions and orchestrating the multi-agent graph.
+    """
+
     def __init__(self, repository: ChatRepository):
         self.repository = repository
         self.graph = create_multi_agent_graph()
@@ -22,164 +49,262 @@ class ChatService:
     async def delete_session(self, thread_id: str):
         await self.repository.delete_conversation(thread_id)
 
-    async def run_chat_flow(self, message: str, thread_id: Optional[str], files: List[str], model: Optional[str] = None):
-        logger.info(f"Initiating chat flow for message: '{message[:50]}...' (Thread: {thread_id})")
-        
-        if not thread_id:
-            thread_id = str(uuid.uuid4())
-            logger.info(f"Creating new conversation with thread_id: {thread_id}")
-            await self.repository.create_conversation(thread_id, message[:50])
+    def _get_request_hash(self, message: str, history: list, files: list[str]) -> str:
+        """Generate a hash for the current request context."""
+        context_str = (
+            message + "".join([str(m.content) for m in history]) + "".join(files)
+        )
+        return hashlib.sha256(context_str.encode()).hexdigest()
 
-        # Load and clean history
-        db_messages = await self.repository.get_messages(thread_id)
-        logger.info(f"Found {len(db_messages)} previous messages in thread {thread_id}")
-        
+    async def _generate_and_update_title(
+        self, thread_id: str, first_message: str, model: str
+    ):
+        """Generate a descriptive title for the conversation."""
+        try:
+            llm = ChatOpenAI(
+                model=model, openai_api_key=OPENAI_API_KEY, temperature=0.7
+            )
+            prompt = f"Generate a short title (max 5 words) for: '{first_message[:100]}'. Return ONLY the title."
+
+            from langchain_community.callbacks import get_openai_callback
+
+            from src.multi_agent_rag.services.cost_service import cost_service
+
+            with get_openai_callback() as cb:
+                response = await llm.ainvoke(prompt)
+                title = response.content.strip().replace('"', "")[:50]
+                actual_cost = cost_service.calculate_cost(
+                    model, cb.prompt_tokens, cb.completion_tokens
+                )
+
+                await self.repository.update_conversation_title(thread_id, title)
+                await self.repository.update_conversation_cost(thread_id, actual_cost)
+        except Exception as e:
+            logger.error(f"Title generation failed: {e}")
+
+    def _build_context_history(self, db_messages: list) -> list:
+        """Build context-aware message history with smart truncation."""
         history = []
-        for m in db_messages:
-            raw_content = m.content
-            # Extremely defensive content extraction
-            content_obj = None
-            if isinstance(raw_content, dict):
-                content_obj = raw_content
-            elif isinstance(raw_content, str):
-                try:
-                    content_obj = json.loads(raw_content)
-                except Exception:
-                    content_obj = raw_content # Fallback to literal string
+        total_chars = 0
 
-            # Formatting for LangGraph history
+        # Filter for recent human/ai messages within limit
+        messages_to_process = db_messages[-MAX_HISTORY_MESSAGES:]
+
+        for m in messages_to_process:
+            content_obj = (
+                m.content
+                if isinstance(m.content, dict)
+                else (
+                    json.loads(m.content)
+                    if isinstance(m.content, str) and m.content.startswith("{")
+                    else m.content
+                )
+            )
+
             if m.role == "human":
-                msg_text = str(content_obj) if not isinstance(content_obj, dict) else content_obj.get("message", str(content_obj))
-                history.append(HumanMessage(content=msg_text))
+                msg_text = (
+                    content_obj.get("message", str(content_obj))
+                    if isinstance(content_obj, dict)
+                    else str(content_obj)
+                )
+                history.append(HumanMessage(content=msg_text[:1000]))
+                total_chars += len(msg_text[:1000])
             else:
                 if isinstance(content_obj, dict):
-                    # Prefer the textual response for LLM context, then code, then raw dump
-                    msg_text = content_obj.get("response") or content_obj.get("code") or json.dumps(content_obj)
+                    parts = [content_obj.get("response", "")]
+                    if content_obj.get("code"):
+                        parts.append(f"\n[Code: {content_obj['code'][:200]}...]")
+                    msg_text = " ".join(parts)[:1000]
                 else:
-                    msg_text = str(content_obj)
+                    msg_text = str(content_obj)[:1000]
                 history.append(AIMessage(content=msg_text))
+                total_chars += len(msg_text)
 
-        # Create current message
-        logger.info(f"Processing current multimodal message with {len(files)} attachments.")
-        human_msg = create_multimodal_message(message, files)
-        
+        while total_chars > MAX_CONTEXT_CHARS and len(history) > 2:
+            removed = history.pop(0)
+            total_chars -= len(removed.content)
+            if history and isinstance(history[0], AIMessage):
+                removed_ai = history.pop(0)
+                total_chars -= len(removed_ai.content)
+        return history
+
+    async def run_chat_flow(
+        self,
+        message: str,
+        thread_id: str | None,
+        files: list[str],
+        model: str | None = None,
+    ):
+        """Executes a chat interaction synchronously with caching."""
+        if not thread_id:
+            thread_id = str(uuid.uuid4())
+            await self.repository.create_conversation(thread_id, "New Chat")
+            await self._generate_and_update_title(
+                thread_id, message, model or DEFAULT_MODEL
+            )
+
+        db_messages = await self.repository.get_messages(thread_id)
+        history = self._build_context_history(db_messages)
+
+        # Check Response Cache
+        request_hash = self._get_request_hash(message, history, files)
+        if cache_service and cache_service.is_available:
+            cached_resp = cache_service.get_response_cache(request_hash)
+            if cached_resp:
+                logger.info(f"Response cache HIT for thread {thread_id}")
+                await self.repository.add_message(thread_id, "human", message)
+                await self.repository.add_message(thread_id, "ai", cached_resp)
+                return thread_id, cached_resp
+
         # Prepare Graph State
+        human_msg = create_multimodal_message(message, files)
         initial_state = {
-            "messages": history + [human_msg],
+            "messages": [*history, human_msg],
             "research_output": "",
             "plan": "",
             "code": "",
-            "thought": "Thinking...",
+            "thought": "Aura is analyzing...",
             "final_response": "",
             "next_step": "",
             "files": files,
-            "model": model
+            "model": model,
+            "loop_count": 0,
         }
-        
-        logger.info(f"Invoking Multi-Agent Graph for thread {thread_id}...")
+
+        from langchain_community.callbacks import get_openai_callback
+        from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential
+
+        from src.multi_agent_rag.services.cost_service import cost_service
+
         try:
-            result = await self.graph.ainvoke(initial_state)
-            logger.info(f"Graph execution complete for thread {thread_id}")
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(3),
+                wait=wait_exponential(1, 2, 10),
+                reraise=True,
+            ):
+                with attempt:
+                    with get_openai_callback() as cb:
+                        result = await self.graph.ainvoke(initial_state)
+                        total_input, total_output = (
+                            cb.prompt_tokens,
+                            cb.completion_tokens,
+                        )
+                        actual_cost = cost_service.calculate_cost(
+                            model or DEFAULT_MODEL, total_input, total_output
+                        )
         except Exception as e:
-            logger.error(f"Error during graph execution: {str(e)}", exc_info=True)
+            logger.error(f"Graph execution failed: {e}")
             raise
 
-        # Map results to UI-ready structure
-        research_out = result.get("research_output", "")
-        plan_out = result.get("plan", "")
-        code_out = result.get("code", "")
-        final_out = result.get("final_response", "")
-        
-        # In interactive mode, we want the agent's explicit final_response
-        main_response = final_out or "Task stage completed. What would you like to do next?"
-
         ai_content = {
-            "thought": result.get("thought", "Thinking..."),
-            "research": research_out,
-            "plan": plan_out,
-            "code": code_out,
-            "response": main_response
+            "thought": result.get("thought", ""),
+            "research": result.get("research_output", ""),
+            "plan": result.get("plan", ""),
+            "code": result.get("code", ""),
+            "response": result.get("final_response", "") or "Processed.",
         }
 
-        # LOG EVERYTHING clearly
-        logger.info(f"--- AGENT LOGS FOR THREAD {thread_id} ---")
-        logger.info(f"THOUGHT: {ai_content['thought']}")
-        logger.info(f"RESPONSE READY: {bool(ai_content['response'])}")
-        logger.debug(f"FULL PAYLOAD: {json.dumps(ai_content)}")
-        logger.info(f"----------------------------------------")
+        # Cache Response
+        if cache_service and cache_service.is_available:
+            cache_service.set_response_cache(request_hash, ai_content)
 
-        # Persist to Database
-        try:
-            await self.repository.add_message(thread_id, "human", message)
-            await self.repository.add_message(thread_id, "ai", ai_content)
-            logger.info(f"Messages persisted successfully for thread {thread_id}")
-        except Exception as e:
-            logger.error(f"Persistence error: {str(e)}", exc_info=True)
-
+        await self.repository.add_message(thread_id, "human", message)
+        await self.repository.add_message(
+            thread_id,
+            "ai",
+            ai_content,
+            input_tokens=total_input,
+            output_tokens=total_output,
+            cost=actual_cost,
+        )
         return thread_id, ai_content
 
-    async def stream_chat_flow(self, message: str, thread_id: Optional[str], files: List[str], model: Optional[str] = None):
+    async def stream_chat_flow(
+        self,
+        message: str,
+        thread_id: str | None,
+        files: list[str],
+        model: str | None = None,
+    ):
+        """Executes a chat interaction and streams updates via SSE with caching."""
         if not thread_id:
             thread_id = str(uuid.uuid4())
-            await self.repository.create_conversation(thread_id, message[:50])
+            await self.repository.create_conversation(thread_id, "New Chat")
+            await self._generate_and_update_title(
+                thread_id, message, model or DEFAULT_MODEL
+            )
 
         db_messages = await self.repository.get_messages(thread_id)
-        history = []
-        for m in db_messages:
-            raw_content = m.content
-            content_obj = None
-            if isinstance(raw_content, dict):
-                content_obj = raw_content
-            elif isinstance(raw_content, str):
-                try:
-                    content_obj = json.loads(raw_content)
-                except Exception:
-                    content_obj = raw_content
+        history = self._build_context_history(db_messages)
 
-            if m.role == "human":
-                msg_text = str(content_obj) if not isinstance(content_obj, dict) else content_obj.get("message", str(content_obj))
-                history.append(HumanMessage(content=msg_text))
-            else:
-                if isinstance(content_obj, dict):
-                    msg_text = content_obj.get("response") or content_obj.get("code") or json.dumps(content_obj)
-                else:
-                    msg_text = str(content_obj)
-                history.append(AIMessage(content=msg_text))
+        # Check Cache
+        request_hash = self._get_request_hash(message, history, files)
+        if cache_service and cache_service.is_available:
+            cached_resp = cache_service.get_response_cache(request_hash)
+            if cached_resp:
+                logger.info(f"Response cache HIT (stream) for thread {thread_id}")
+                yield f"data: {json.dumps({'thread_id': thread_id, 'final': cached_resp})}\n\n"
+                return
 
+        # Prepare State
         human_msg = create_multimodal_message(message, files)
         initial_state = {
-            "messages": history + [human_msg],
+            "messages": [*history, human_msg],
             "research_output": "",
             "plan": "",
             "code": "",
-            "thought": "Aura is orchestrating agents...",
+            "thought": "Aura orchestrating...",
             "final_response": "",
             "next_step": "",
             "files": files,
-            "model": model
+            "model": model,
+            "loop_count": 0,
         }
 
-        # Persist human message early
         await self.repository.add_message(thread_id, "human", message)
+        from langchain_community.callbacks import get_openai_callback
 
-        last_state = initial_state
-        async for output in self.graph.astream(initial_state):
-            # output is a dict like {'node_name': {state_updates}}
-            for key, val in output.items():
-                last_state.update(val)
-                # Filter out non-serializable objects (like LangChain messages)
-                serializable_update = {k: v for k, v in val.items() if k != "messages"}
-                # Stream the update to frontend
-                yield f"data: {json.dumps({'thread_id': thread_id, 'update': serializable_update})}\n\n"
+        from src.multi_agent_rag.services.cost_service import cost_service
 
-        # Map final results
-        ai_content = {
-            "thought": last_state.get("thought", ""),
-            "research": last_state.get("research_output", ""),
-            "plan": last_state.get("plan", ""),
-            "code": last_state.get("code", ""),
-            "response": last_state.get("final_response", "") or "Stage completed."
-        }
-        
-        await self.repository.add_message(thread_id, "ai", ai_content)
-        yield f"data: {json.dumps({'thread_id': thread_id, 'final': ai_content})}\n\n"
+        last_state = dict(initial_state)
+        # We need cb outside for tokens
+        actual_cost = 0.0
+        try:
+            with get_openai_callback() as cb:
+                async for output in self.graph.astream(initial_state):
+                    for _, updates in output.items():
+                        last_state.update(updates)
+                        serializable = {
+                            k: v
+                            for k, v in updates.items()
+                            if k != "messages" and not callable(v)
+                        }
+                        yield f"data: {json.dumps({'thread_id': thread_id, 'update': serializable})}\n\n"
+                actual_cost = cost_service.calculate_cost(
+                    model or DEFAULT_MODEL, cb.prompt_tokens, cb.completion_tokens
+                )
+
+                ai_content = {
+                    "thought": last_state.get("thought", ""),
+                    "research": last_state.get("research_output", ""),
+                    "plan": last_state.get("plan", ""),
+                    "code": last_state.get("code", ""),
+                    "response": last_state.get("final_response", "") or "Done.",
+                }
+
+                if cache_service and cache_service.is_available:
+                    cache_service.set_response_cache(request_hash, ai_content)
+
+                await self.repository.add_message(
+                    thread_id,
+                    "ai",
+                    ai_content,
+                    input_tokens=cb.prompt_tokens,
+                    output_tokens=cb.completion_tokens,
+                    cost=actual_cost,
+                )
+                yield f"data: {json.dumps({'thread_id': thread_id, 'final': ai_content})}\n\n"
+
+        except Exception as e:
+            logger.error(f"Stream error: {e}")
+            yield f"data: {json.dumps({'thread_id': thread_id, 'error': str(e)})}\n\n"

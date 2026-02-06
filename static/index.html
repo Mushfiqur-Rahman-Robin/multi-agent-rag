@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aura | Multi-Agent Intelligence</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -23,6 +23,10 @@
                 <button class="new-chat-btn" id="new-chat-btn">
                     <i data-lucide="plus-circle"></i>
                     <span>New Thread</span>
+                </button>
+                <button class="knowledge-btn" id="knowledge-btn">
+                    <i data-lucide="database"></i>
+                    <span>Knowledge</span>
                 </button>
             </div>
             <div class="history-container" id="history-list">
@@ -47,8 +51,8 @@
                 <div class="model-controls">
                     <label for="model-select" class="agent-status">Active Model:</label>
                     <select id="model-select" class="model-selector">
-                        <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
-                        <option value="gpt-4o-mini" selected>GPT-4o Mini</option>
+                        <option value="gpt-4.1-mini" selected>GPT-4.1 Mini</option>
+                        <option value="gpt-4o-mini">GPT-4o Mini</option>
                     </select>
                 </div>
                 <div class="system-badges">
@@ -61,23 +65,45 @@
                     <h1 class="hero-title">How can I help you today?</h1>
                     <div class="features-grid">
                         <div class="feature-card">
+                            <i data-lucide="database"></i>
+                            <h3>Knowledge RAG</h3>
+                            <p>Query your internal documents with semantic precision.</p>
+                        </div>
+                        <div class="feature-card">
                             <i data-lucide="search"></i>
                             <h3>Internet Research</h3>
                             <p>Deep gathering of real-time insights across the web.</p>
                         </div>
                         <div class="feature-card">
-                            <i data-lucide="map"></i>
-                            <h3>Logical Planning</h3>
-                            <p>Dynamic roadmaps tailored to your specific goals.</p>
-                        </div>
-                        <div class="feature-card">
                             <i data-lucide="terminal"></i>
-                            <h3>Code Execution</h3>
+                            <h3>Execution</h3>
                             <p>Real-time implementation and verified outputs.</p>
                         </div>
                     </div>
                 </div>
                 <div class="messages-container" id="messages-container"></div>
+            </div>
+
+            <!-- Knowledge Modal -->
+            <div id="knowledge-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Knowledge Base</h2>
+                        <button class="close-modal" id="close-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Upload PDFs or text files to index them into ChromaDB.</p>
+                        <div class="upload-zone" id="kb-upload-zone">
+                            <i data-lucide="upload-cloud"></i>
+                            <p>Drag & drop or click to upload</p>
+                            <input type="file" id="kb-file-input" multiple hidden accept=".pdf,.txt">
+                        </div>
+                        <div class="kb-progress-container" id="kb-progress-container">
+                            <div class="kb-progress-bar" id="kb-progress-bar"></div>
+                        </div>
+                        <div class="kb-status-list" id="kb-status-list"></div>
+                    </div>
+                </div>
             </div>
 
             <footer class="input-area">
@@ -104,7 +130,7 @@
             </footer>
         </main>
     </div>
-    <script src="/static/script.js"></script>
+    <script src="/static/script.js?v=2"></script>
 </body>
 
 </html>

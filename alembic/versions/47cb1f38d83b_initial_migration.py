@@ -1,7 +1,7 @@
 """Initial migration
 
 Revision ID: 47cb1f38d83b
-Revises: 
+Revises:
 Create Date: 2026-02-03 10:10:10.017840
 
 """
@@ -30,7 +30,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_conversations_id'), 'conversations', ['id'], unique=False)
     op.create_index(op.f('ix_conversations_thread_id'), 'conversations', ['thread_id'], unique=True)
-    
+
     op.create_table('messages',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('thread_id', sa.String(), nullable=True),

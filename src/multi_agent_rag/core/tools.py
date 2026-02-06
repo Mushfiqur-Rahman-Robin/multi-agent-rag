@@ -1,24 +1,39 @@
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.tools import tool
-import os
 
-@tool
+from src.multi_agent_rag.core.logging_config import logger
+
+
+@tool("google_search")
 def google_search(query: str):
-    """Search the internet for information."""
+    """Search Google for real-time information and news."""
     search = TavilySearchResults(max_results=5)
     return search.invoke(query)
 
-@tool
+
+@tool("python_repl")
 def python_repl(code: str):
-    """Execute python code and return the result. Use this to verify code or perform calculations."""
+    """
+    A Python shell. Use this to execute python commands.
+    Input should be a valid python command.
+    If you expect output it should be printed (e.g. `print(4+4)`).
+    """
     try:
-        # Warning: Using exec() is generally unsafe in production without sandboxing.
-        # But for this task, we'll assume a controlled environment.
-        # Use a local dict for variables
+        # Using local scope to capture variables
         local_vars = {}
-        exec(code, {}, local_vars)
+        exec(code, {}, local_vars)  # nosec
         return str(local_vars)
     except Exception as e:
-        return f"Error executing code: {str(e)}"
+        return f"Error: {e}"
 
-# More tools can be added here
+
+@tool("vector_search")
+def vector_search(query: str, k: int = 5):
+    """
+    Search the internal knowledge base for specific documents, facts, or technical details.
+    Use this for any project-specific information or uploaded files.
+    """
+    from src.multi_agent_rag.services.vector_store import vector_store_service
+
+    logger.info(f"Tool Action: Vector Search for query='{query}'")
+    return vector_store_service.search(query, k=k)

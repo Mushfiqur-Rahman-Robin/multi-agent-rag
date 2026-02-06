@@ -47,4 +47,3 @@ jobs:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         pytest tests/unit tests/integration --cov=src --cov-report=xml
-

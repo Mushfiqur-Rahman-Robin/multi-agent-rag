@@ -1,57 +1,63 @@
-# Lean Multi-Agent RAG System
+# Aura: Autonomous Multi-Agent RAG System
 
-This repository contains a lean, multimodal, multi-agent RAG system powered by Gemini 2.0 Flash and LangGraph.
+Aura is a premium, autonomous multi-agent RAG system designed for high-performance reasoning, content generation, and knowledge synthesis. Built with **LangGraph**, **FastAPI**, and **Redis Stack**, it orchestrates specialized agents to solve complex tasks with transparency and efficiency.
 
-## Architecture
+## 🚀 Key Features
 
-The system consists of three specialized agents:
-1.  **Research Agent**: Uses Tavily/Google Search to gather information from the internet.
-2.  **Planning Agent**: Drafts a detailed plan based on the research findings.
-3.  **Coding Agent**: Implements the plan, with access to a Python interpreter for verification.
+*   **Autonomous Orchestration**: Uses LangGraph to manage a sophisticated multi-agent workflow (Researcher, Planner, Coder, Responder).
+*   **Intelligent Caching**: High-performance caching layer powered by **Redis Stack** with:
+    *   **Research Caching**: Skips redundant web searches.
+    *   **Vector Caching**: Accelerates repeated knowledge base queries.
+    *   **Response Caching**: Instant answers for identical request contexts.
+    *   **Auto-Invalidation**: Caches automatically synchronize when the Knowledge Base is updated.
+*   **Premium UX/UI**:
+    *   **Thought Transparency**: Expandable thought bubbles reveal the agent's internal reasoning and implementation details.
+    *   **Compact Design**: Optimized for 15-inch displays with professional dark mode aesthetics.
+    *   **Live Stream**: Real-time agent progress updates via SSE (Server-Sent Events).
+*   **Robust Memory**:
+    *   **Short-term**: Context-aware windowing of recent conversation history.
+    *   **Long-term**: Persistent session storage in **PostgreSQL**.
+*   **Multimodal Capabilities**: Native support for text, images, and documents.
 
-## Features
-- **Visual Interface**: Premium ChatGPT-like web UI with a dark-mode theme.
-- **Multimodal Support**: Handles Text, Image, and Voice inputs.
-- **Session Management**: Persistent conversation threads stored in PostgreSQL.
-- **Lean Codebase**: Optimized for performance and simplicity, no local models required.
-- **State-of-the-Art Models**: Uses Gemini 2.5 Flash for fast and capable reasoning.
+## 🛠 Architecture
 
-## Requirements
-- `GEMINI_API_KEY`
-- `TAVILY_API_KEY` (Optional)
-- `DATABASE_URL` (Handled by Docker)
+The system follows a star-pattern orchestration:
+1.  **Router**: The Lead Orchestrator that analyzes user intent and routes to specialized agents.
+2.  **Researcher**: Performs deep-dives into the internal Knowledge Base (ChromaDB) and the Web (Google/Tavily).
+3.  **Planner**: Synthesizes research into strategic, step-by-step execution roadmaps.
+4.  **Coder**: Implements plans with Python execution capabilities for verification.
+5.  **Responder**: Synthesizes all agent outputs into a polished, user-facing response.
 
-## Getting Started
+## 📥 Getting Started
 
-### Using Docker
-1. Create a `.env` file with your API keys.
-2. Run:
-   ```bash
-   docker-compose up --build
-   ```
+### Prerequisites
+- Docker & Docker Compose
+- OpenAI API Key (or Gemini via configuration)
 
-### Locally
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Run the application:
-   ```bash
-   python main.py
-   ```
+### Deployment (Docker)
+1.  **Configure Environment**:
+    Create a `.env` file in the root directory:
+    ```env
+    OPENAI_API_KEY=your_key_here
+    TAVILY_API_KEY=your_key_here
+    LOG_LEVEL=INFO
+    CACHE_ENABLED=true
+    ```
+2.  **Start the System**:
+    ```bash
+    docker compose up --build
+    ```
+    Access the UI at `http://localhost:8000`.
 
-## API Documentation
+## 📚 API Endpoints
 
-### Chat with Session
-`POST /chat`
-- `message`: (string, Form) The user's query.
-- `thread_id`: (string, Optional, Form) ID for continuing a conversation.
-- `files`: (file, Optional) Multimodal inputs (images/audio).
-
-### Session Management
-- `GET /sessions`: List all conversation threads.
-- `GET /sessions/{thread_id}`: Get full message history for a specific thread.
-- `DELETE /sessions/{thread_id}`: Delete a conversation thread.
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/chat/stream` | POST | Stream AI response with real-time agent thoughts. |
+| `/chat` | POST | Synchronous chat interaction. |
+| `/sessions` | GET | List all conversation threads. |
+| `/knowledge/upload`| POST | Upload files to the Knowledge Base. |
+| `/knowledge/list` | GET | List indexed documents. |
+| `/cache/stats` | GET | Audit cache hit/miss performance. |
 
 ---
-Created by Antigravity.

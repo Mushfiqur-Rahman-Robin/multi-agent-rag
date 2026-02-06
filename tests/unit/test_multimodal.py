@@ -5,7 +5,7 @@ from langchain_core.messages import HumanMessage
 def test_create_multimodal_message_text_only():
     message = "Hello world"
     human_msg = create_multimodal_message(message)
-    
+
     assert isinstance(human_msg, HumanMessage)
     assert len(human_msg.content) == 1
     assert human_msg.content[0]["type"] == "text"

@@ -12,24 +12,24 @@ async def test_chat_stream_endpoint_mocked():
         async def mock_gen(*args, **kwargs):
             yield 'data: {"thread_id": "test-thread", "update": {"thought": "thinking..."}}\n\n'
             yield 'data: {"thread_id": "test-thread", "final": {"response": "done"}}\n\n'
-            
+
         mock_stream.side_effect = mock_gen
-        
+
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             response = await ac.post(
                 "/chat/stream",
                 data={"message": "Hello"}
             )
-        
+
         assert response.status_code == 200
         assert "text/event-stream" in response.headers["content-type"]
-        
+
         # Read the stream content
         content = ""
         async for chunk in response.aiter_text():
             content += chunk
-            
+
         assert "test-thread" in content
         assert "thinking..." in content
         assert '"response": "done"' in content

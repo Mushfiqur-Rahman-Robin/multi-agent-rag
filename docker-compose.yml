@@ -17,14 +17,35 @@ services:
     networks:
       - rag-network
 
+  redis:
+    image: redis/redis-stack-server:7.4.0-v8
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_ARGS=--appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+
   rag-system:
     build: .
     ports:
       - "${APP_PORT:-8000}:${APP_PORT:-8000}"
     env_file:
       - .env
+    environment:
+      - REDIS_HOST=redis
+      - DB_HOST=db
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - .:/app
@@ -38,3 +59,4 @@ networks:
 
 volumes:
   postgres_data:
+  redis_data:

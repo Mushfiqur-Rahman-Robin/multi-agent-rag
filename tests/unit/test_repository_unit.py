@@ -12,12 +12,12 @@ async def test_create_conversation(mock_session):
     repo = ChatRepository(mock_session)
     thread_id = "test-thread"
     title = "test-title"
-    
+
     await repo.create_conversation(thread_id, title)
-    
+
     mock_session.add.assert_called_once()
     mock_session.commit.assert_called_once()
-    
+
     # Check that it was called with a Conversation object with correct values
     # Actually, verify the attributes of the object added
     conv = mock_session.add.call_args[0][0]
@@ -30,13 +30,13 @@ async def test_get_conversations(mock_session):
     repo = ChatRepository(mock_session)
     mock_scalars = MagicMock()
     mock_scalars.all.return_value = [Conversation(thread_id="1")]
-    
+
     mock_result = MagicMock()
     mock_result.scalars.return_value = mock_scalars
     mock_session.execute.return_value = mock_result
-    
+
     sessions = await repo.get_conversations()
-    
+
     assert len(sessions) == 1
     assert sessions[0].thread_id == "1"
     mock_session.execute.assert_called_once()
@@ -47,12 +47,12 @@ async def test_add_message(mock_session):
     thread_id = "test-thread"
     role = "human"
     content = "hello"
-    
+
     await repo.add_message(thread_id, role, content)
-    
+
     mock_session.add.assert_called_once()
     mock_session.commit.assert_called_once()
-    
+
     msg = mock_session.add.call_args[0][0]
     assert isinstance(msg, Message)
     assert msg.thread_id == thread_id
