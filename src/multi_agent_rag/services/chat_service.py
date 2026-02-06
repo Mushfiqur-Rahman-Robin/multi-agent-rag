@@ -19,6 +19,7 @@ from src.multi_agent_rag.core.config import (
     MAX_CONTEXT_CHARS,
     MAX_HISTORY_MESSAGES,
     OPENAI_API_KEY,
+    USER_UPLOAD_DIR,
 )
 from src.multi_agent_rag.core.logging_config import logger
 from src.multi_agent_rag.core.multimodal import create_multimodal_message
@@ -161,7 +162,17 @@ class ChatService:
             cached_resp = await cache_service.get_response_cache(request_hash)
             if cached_resp:
                 logger.info(f"Response cache HIT for thread {thread_id}")
-                await self.repository.add_message(thread_id, "human", message)
+                if files:
+                    file_urls = [
+                        f"/user_upload/{f.replace(str(USER_UPLOAD_DIR), '').lstrip('/')}"
+                        for f in files
+                        if str(USER_UPLOAD_DIR) in f
+                    ]
+                    human_content = {"message": message, "files": file_urls}
+                else:
+                    human_content = message
+
+                await self.repository.add_message(thread_id, "human", human_content)
                 await self.repository.add_message(thread_id, "ai", cached_resp)
                 return thread_id, cached_resp
 
@@ -217,7 +228,17 @@ class ChatService:
         if cache_service and cache_service.is_available:
             await cache_service.set_response_cache(request_hash, ai_content)
 
-        await self.repository.add_message(thread_id, "human", message)
+        if files:
+            file_urls = [
+                f"/user_upload/{f.replace(str(USER_UPLOAD_DIR), '').lstrip('/')}"
+                for f in files
+                if str(USER_UPLOAD_DIR) in f
+            ]
+            human_content = {"message": message, "files": file_urls}
+        else:
+            human_content = message
+
+        await self.repository.add_message(thread_id, "human", human_content)
         await self.repository.add_message(
             thread_id,
             "ai",
@@ -279,7 +300,17 @@ class ChatService:
             "loop_count": 0,
         }
 
-        await self.repository.add_message(thread_id, "human", message)
+        if files:
+            file_urls = [
+                f"/user_upload/{f.replace(str(USER_UPLOAD_DIR), '').lstrip('/')}"
+                for f in files
+                if str(USER_UPLOAD_DIR) in f
+            ]
+            human_content = {"message": message, "files": file_urls}
+        else:
+            human_content = message
+
+        await self.repository.add_message(thread_id, "human", human_content)
         from langchain_community.callbacks import get_openai_callback
 
         from src.multi_agent_rag.services.cost_service import cost_service

@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 - API Key authentication documentation in `docs/api.md`.
 - Architecture security layer details in `docs/ARCHITECTURE.md`.
 - `aiofiles` dependency for non-blocking file I/O.
+- **File Persistence**: Implemented durable file storage for chat attachments.
+  - Mounts `/user_upload` for direct file serving.
+  - Persists file URLs in conversation history.
+  - Enhanced UI to render PDFs and files natively in the chat history.
 
 ### Changed
 - **Async/Await Optimization**: Audited the entire codebase for correct asynchronous usage.

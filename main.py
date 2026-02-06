@@ -67,6 +67,7 @@ async def add_request_id(request: Request, call_next):
 
 app.include_router(router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/user_upload", StaticFiles(directory="user_upload"), name="user_upload")
 
 
 @app.get("/")

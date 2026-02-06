@@ -283,6 +283,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (role === 'human') {
             const text = typeof content === 'string' ? content : (content.message || JSON.stringify(content));
             htmlContent = `<div class="msg-content">${parseMarkdown(text)}</div>`;
+
+            if (typeof content === 'object' && content.files && content.files.length > 0) {
+                htmlContent += '<div class="attachments-grid" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">';
+                content.files.forEach(file => {
+                    let src = '';
+                    let isImage = false;
+                    let name = '';
+
+                    if (typeof file === 'string') {
+                        src = file;
+                        name = file.split('/').pop();
+                        isImage = file.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
+                    } else if (file instanceof File) {
+                        src = URL.createObjectURL(file);
+                        name = file.name;
+                        isImage = file.type.startsWith('image/');
+                    }
+
+                    if (isImage) {
+                        htmlContent += `<div class="attachment-thumb"><img src="${src}" alt="${name}" style="max-width:200px; max-height:200px; border-radius:8px; border: 1px solid var(--border-color);"></div>`;
+                    } else {
+                        htmlContent += `<a href="${src}" target="_blank" class="file-attachment" style="display:flex; align-items:center; gap:5px; background:var(--bg-secondary); padding:8px; border-radius:6px; text-decoration:none; color:var(--text-primary); border: 1px solid var(--border-color);">
+                            <i data-lucide="file-text" style="width: 16px; height: 16px;"></i> <span style="font-size: 0.9em;">${name}</span>
+                         </a>`;
+                    }
+                });
+                htmlContent += '</div>';
+            }
         } else {
             // Build implementation details for inside the thought bubble
             const researchHtml = (content.research_output || content.research) ? `
@@ -360,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tempFiles = [...selectedFiles];
         clearAttachments();
 
-        addMessageToUI('human', text);
+        addMessageToUI('human', { message: text, files: tempFiles });
 
         const thinkingDiv = document.createElement('div');
         thinkingDiv.className = 'message ai';
@@ -570,16 +598,33 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (ev) => {
                 const div = document.createElement('div');
                 div.className = 'preview-item shadow-lg';
+
+                let contentHTML = '';
+                if (file.type.startsWith('image/')) {
+                    contentHTML = `<img src="${ev.target.result}" style="width:100%; height:100%; object-fit:cover;" />`;
+                } else {
+                    contentHTML = `<div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#27272a; color:var(--text-secondary);">
+                        <i data-lucide="file-text" style="width:20px; height:20px; color:var(--accent);"></i>
+                        <span style="font-size:8px; width:90%; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; text-align:center; margin-top:2px;">${file.name.split('.').pop().toUpperCase()}</span>
+                    </div>`;
+                }
+
                 div.innerHTML = `
-                    <img src="${file.type.startsWith('image/') ? ev.target.result : 'https://cdn-icons-png.flaticon.com/512/1250/1250461.png'}" />
-                    <div class="remove-file" style="position:absolute; top:-5px; right:-5px; background:var(--error); border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; border:2px solid var(--bg-dark)">&times;</div>
+                    ${contentHTML}
+                    <div class="remove-file" style="position:absolute; top:0; right:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); width:100%; height:100%; display:none; align-items:center; justify-content:center; cursor:pointer; font-size:18px; color:white;">&times;</div>
                 `;
-                div.querySelector('.remove-file').onclick = () => {
+
+                // Show remove overlay on hover
+                div.onmouseenter = () => { div.querySelector('.remove-file').style.display = 'flex'; };
+                div.onmouseleave = () => { div.querySelector('.remove-file').style.display = 'none'; };
+
+                div.onclick = () => {
                     selectedFiles = selectedFiles.filter(f => f !== file);
                     div.remove();
                     updateSendButtonState();
                 };
                 attachmentPreview.appendChild(div);
+                lucide.createIcons();
             };
             reader.readAsDataURL(file);
         });

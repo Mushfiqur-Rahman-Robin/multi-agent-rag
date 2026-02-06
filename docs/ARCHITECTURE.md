@@ -24,7 +24,12 @@ Aura uses a stateful computational graph where nodes represent specialized agent
 - Uses Alembic for schema migrations.
 - Implements a thread-based history mechanism for the agents to maintain context.
 
-### 4. Interactive Frontend (Vanilla JS + CSS)
+### 4. File Storage Strategy
+- **User Uploads**: Mounted volume at `/user_upload` persists user files (images/PDFs) natively.
+- **Static Hosting**: Files are served directly via FastAPI static mounts for immediate retrieval.
+- **Message Linking**: URLs are stored in the JSON message content in Postgres to maintain conversational context.
+
+### 5. Interactive Frontend (Vanilla JS + CSS)
 - **Responsive Design**: Premium dark-mode interface.
 - **Real-time Feedback**: Visualises agent "thoughts" and intermediate steps (plans, code outputs).
 - **Multimodal Support**: Handles file uploads (images/audio) for cross-modal reasoning.
