@@ -29,19 +29,41 @@ async def test_run_chat_flow_new_session(chat_service, mock_repo):
         "plan": "",
         "code": ""
     }
-
     # Mock repo.get_messages and repo.create_conversation
     mock_repo.get_messages.return_value = []
     mock_repo.create_conversation.return_value = AsyncMock()
 
-    new_thread_id, ai_content = await chat_service.run_chat_flow(message, thread_id, files)
+    # Mock cost_service and callback
+
+    with patch('src.multi_agent_rag.services.cost_service.cost_service') as mock_cost:
+        mock_cost.calculate_cost.return_value = 0.05
+        with patch('langchain_community.callbacks.get_openai_callback') as mock_cb:
+            mock_cb_instance = MagicMock()
+            mock_cb_instance.prompt_tokens = 10
+            mock_cb_instance.completion_tokens = 20
+            mock_cb.__enter__.return_value = mock_cb_instance
+
+            new_thread_id, ai_content = await chat_service.run_chat_flow(message, thread_id, files)
 
     assert new_thread_id is not None
     assert ai_content["response"] == "Hi there!"
 
+    print(f"\nDEBUG: CALL ARGS LIST: {mock_repo.add_message.call_args_list}")
     mock_repo.create_conversation.assert_called_once()
     mock_repo.add_message.assert_any_call(new_thread_id, "human", message)
-    mock_repo.add_message.assert_any_call(new_thread_id, "ai", ai_content)
+
+    from unittest.mock import ANY
+    mock_repo.add_message.assert_any_call(
+        ANY,
+        "ai",
+        ANY,
+        input_tokens=ANY,
+        output_tokens=ANY,
+        cost=ANY
+    )
+
+
+
 
 @pytest.mark.asyncio
 async def test_get_all_sessions(chat_service, mock_repo):

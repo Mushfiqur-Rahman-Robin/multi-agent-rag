@@ -28,10 +28,30 @@
    Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ## Virtual Environment (Local Development)
-If you wish to run outside Docker:
+
+If you wish to run locally:
+
+1. **Install dependencies using uv**:
+   ```bash
+   uv sync
+   ```
+
+2. **Activate the environment**:
+   ```bash
+   source .venv/bin/activate
+   ```
+
+3. **Set your API Key**:
+   Ensure `APPLICATION_API_KEY` is set in your `.env` file. You will need this for all API requests.
+
+4. **Run the application**:
+   ```bash
+   python main.py
+   ```
+
+## Running Tests
+To ensure everything is working correctly:
 ```bash
-python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
+pytest
 ```

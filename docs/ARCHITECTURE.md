@@ -37,6 +37,7 @@ Aura uses a stateful computational graph where nodes represent specialized agent
 4. **Human Feedback**: The system stops and waits for user confirmation or further instructions, enabling iterative refinement.
 
 ## 🛡️ Security & Performance
-- Runs as a non-root user in Docker.
-- Optimized multi-stage Docker builds.
-- Connection pooling and retry logic for database reliability.
+- **API Security**: Implements `X-API-Key` mandatory header verification for all business-critical endpoints.
+- **Non-Root Execution**: Runs as a non-root user in Docker to minimize attack surface.
+- **Optimized Builds**: Multi-stage Docker builds for minimal image size.
+- **Reliability**: Connection pooling and exponential backoff retry logic for database and LLM calls.

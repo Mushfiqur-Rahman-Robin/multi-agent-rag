@@ -2,7 +2,17 @@
 
 This page provides an overview of the available API endpoints in the Modular Multi-Agent RAG system.
 
+## Authentication
+
+All API endpoints (except `/health`, `/config`, and the root `/`) require authentication via a custom header:
+
+- **Header Name**: `X-API-Key`
+- **Value**: Your application API key (available via `/config` or environment variables).
+
+Requests without this header or with an invalid key will return a `403 Forbidden` status code.
+
 ## Chat Endpoints
+
 
 ### Post Chat
 `POST /chat`

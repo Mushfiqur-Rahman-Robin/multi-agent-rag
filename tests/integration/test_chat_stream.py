@@ -3,6 +3,7 @@ import json
 from httpx import AsyncClient, ASGITransport
 from unittest.mock import patch, AsyncMock
 from main import app
+from src.multi_agent_rag.core.config import APPLICATION_API_KEY
 
 @pytest.mark.asyncio
 async def test_chat_stream_endpoint_mocked():
@@ -19,11 +20,13 @@ async def test_chat_stream_endpoint_mocked():
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             response = await ac.post(
                 "/chat/stream",
-                data={"message": "Hello"}
+                data={"message": "Hello"},
+                headers={"X-API-Key": APPLICATION_API_KEY}
             )
 
         assert response.status_code == 200
         assert "text/event-stream" in response.headers["content-type"]
+
 
         # Read the stream content
         content = ""

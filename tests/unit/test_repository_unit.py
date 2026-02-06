@@ -48,6 +48,13 @@ async def test_add_message(mock_session):
     role = "human"
     content = "hello"
 
+    # Mock conversation for total cost update
+    mock_conv = MagicMock()
+    mock_conv.total_cost = 0.0
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_conv
+    mock_session.execute.return_value = mock_result
+
     await repo.add_message(thread_id, role, content)
 
     mock_session.add.assert_called_once()
