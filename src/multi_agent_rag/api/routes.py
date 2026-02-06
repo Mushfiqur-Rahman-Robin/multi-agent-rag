@@ -6,9 +6,10 @@ management (upload/delete), cache auditing, and session history.
 """
 
 import os
-import shutil
 import uuid
 
+import aiofiles
+import anyio
 from fastapi import (
     APIRouter,
     Depends,
@@ -67,8 +68,9 @@ async def upload_knowledge(files: list[UploadFile] = File(...)):
     results = []
     for file in files:
         file_path = UPLOAD_DIR / f"kb_{uuid.uuid4()}_{file.filename}"
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        async with aiofiles.open(file_path, "wb") as buffer:
+            content = await file.read()
+            await buffer.write(content)
 
         success = await vector_store_service.ingest_file(str(file_path))
         results.append({"filename": file.filename, "success": success})
@@ -123,7 +125,7 @@ async def get_cache_stats(request: Request, db: AsyncSession = Depends(get_db)):
     if not cache_service or not cache_service.is_available:
         return {"status": "unavailable", "hits": 0, "misses": 0, "ratio": 0}
 
-    stats = cache_service.get_stats()
+    stats = await cache_service.get_stats()
 
     # Snapshot to DB
     repo = ChatRepository(db)
@@ -163,8 +165,9 @@ async def chat(
     if files:
         for file in files:
             file_path = UPLOAD_DIR / f"{uuid.uuid4()}_{file.filename}"
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+            async with aiofiles.open(file_path, "wb") as buffer:
+                content = await file.read()
+                await buffer.write(content)
             saved_files.append(str(file_path))
 
     t_id, response = await service.run_chat_flow(
@@ -174,7 +177,7 @@ async def chat(
     # Cleanup temporary files
     for f in saved_files:
         try:
-            os.remove(f)
+            await anyio.to_thread.run_sync(os.remove, f)
         except OSError as e:
             logger.warning(f"Failed to cleanup temp file {f}: {e}")
 
@@ -199,8 +202,9 @@ async def chat_stream(
     if files:
         for file in files:
             file_path = UPLOAD_DIR / f"{uuid.uuid4()}_{file.filename}"
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+            async with aiofiles.open(file_path, "wb") as buffer:
+                content = await file.read()
+                await buffer.write(content)
             saved_files.append(str(file_path))
 
     return StreamingResponse(

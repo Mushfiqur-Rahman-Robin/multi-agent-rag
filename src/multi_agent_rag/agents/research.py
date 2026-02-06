@@ -21,7 +21,7 @@ except ImportError:
     cache_service = None
 
 
-def research_agent(state: dict) -> dict:
+async def research_agent(state: dict) -> dict:
     """
     Handles the research phase of the workflow.
 
@@ -58,7 +58,7 @@ def research_agent(state: dict) -> dict:
 
     # Check cache first (if available)
     if cache_service and cache_service.is_available and user_query:
-        cached_research = cache_service.get_research_cache(user_query)
+        cached_research = await cache_service.get_research_cache(user_query)
         if cached_research:
             logger.info(f"Research cache HIT for query: {user_query[:50]}...")
             return {
@@ -87,7 +87,7 @@ def research_agent(state: dict) -> dict:
     for i in range(max_iterations):
         try:
             iter_start = time.time()
-            response = llm_with_tools.invoke(current_messages)
+            response = await llm_with_tools.ainvoke(current_messages)
             logger.info(f"LLM tool-call decision took {time.time() - iter_start:.2f}s")
             current_messages.append(response)
 
@@ -106,10 +106,10 @@ def research_agent(state: dict) -> dict:
                     tool_start = time.time()
                     if tool_name == "google_search":
                         logger.info(f"Executing google_search: {tool_args}")
-                        result = google_search.invoke(tool_args)
+                        result = await google_search.ainvoke(tool_args)
                     elif tool_name == "vector_search":
                         logger.info(f"Executing vector_search: {tool_args}")
-                        result = vector_search.invoke(tool_args)
+                        result = await vector_search.ainvoke(tool_args)
                     else:
                         result = f"Unknown tool: {tool_name}"
 
@@ -141,7 +141,7 @@ def research_agent(state: dict) -> dict:
 
         try:
             synth_start = time.time()
-            final_synth = llm.invoke(
+            final_synth = await llm.ainvoke(
                 [*current_messages, SystemMessage(content=synthesis_prompt)]
             )
             logger.info(
@@ -158,7 +158,7 @@ def research_agent(state: dict) -> dict:
 
     # Cache the research results
     if cache_service and cache_service.is_available and user_query and research_summary:
-        cache_service.set_research_cache(user_query, research_summary)
+        await cache_service.set_research_cache(user_query, research_summary)
         logger.debug(f"Research cached for query: {user_query[:50]}...")
 
     thought = "Research complete. Information gathered and synthesized."

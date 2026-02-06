@@ -14,7 +14,7 @@ from src.multi_agent_rag.core.tools import python_repl
 from src.multi_agent_rag.core.utils import get_text_content
 
 
-def coding_agent(state):
+async def coding_agent(state):
     """
     Handles the implementation phase of the workflow.
 
@@ -83,7 +83,7 @@ def coding_agent(state):
 
     messages = [SystemMessage(content=system_content)] + state["messages"]
 
-    response = llm_with_tools.invoke(messages)
+    response = await llm_with_tools.ainvoke(messages)
     new_messages = [response]
 
     code_output = ""
@@ -97,7 +97,7 @@ def coding_agent(state):
         for tool_call in response.tool_calls:
             if tool_call["name"] == "python_repl":
                 try:
-                    execution_result = python_repl.invoke(tool_call["args"])
+                    execution_result = await python_repl.ainvoke(tool_call["args"])
                     new_messages.append(
                         ToolMessage(
                             content=str(execution_result), tool_call_id=tool_call["id"]

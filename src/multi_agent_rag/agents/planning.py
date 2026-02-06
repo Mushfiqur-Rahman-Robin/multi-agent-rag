@@ -13,7 +13,7 @@ from src.multi_agent_rag.core.prompts import PROMPTS
 from src.multi_agent_rag.core.utils import get_text_content
 
 
-def planning_agent(state):
+async def planning_agent(state):
     """
     Handles the planning phase of the workflow.
 
@@ -63,7 +63,7 @@ def planning_agent(state):
 
     messages = [SystemMessage(content=system_content)] + state["messages"]
 
-    response = llm.invoke(messages)
+    response = await llm.ainvoke(messages)
     plan_output = response.content
     thought = "Strategic plan drafted based on available context."
 

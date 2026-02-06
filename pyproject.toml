@@ -37,6 +37,7 @@ dependencies = [
     "redis>=5.0.0",
     "tenacity>=8.0.0",
     "slowapi>=0.1.9",
+    "aiofiles>=25.1.0",
 ]
 
 [build-system]

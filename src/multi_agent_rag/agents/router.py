@@ -37,7 +37,7 @@ def get_text_content(msg) -> str:
     return str(content)
 
 
-def router_node(state: dict) -> dict:
+async def router_node(state: dict) -> dict:
     """
     The main orchestrator node that decides the next step based on conversation context.
 
@@ -98,7 +98,7 @@ def router_node(state: dict) -> dict:
         last_message=last_message,
     )
 
-    response = llm.invoke([SystemMessage(content=prompt)])
+    response = await llm.ainvoke([SystemMessage(content=prompt)])
     decision_raw = response.content.strip().lower()
 
     # Parse decision more robustly
@@ -106,7 +106,7 @@ def router_node(state: dict) -> dict:
         decision = "research"
         thought = "Initiating research phase to gather information."
     elif "plan" in decision_raw:
-        decision = decision = "plan"
+        decision = "plan"
         thought = "Creating strategic plan based on available data."
     elif "code" in decision_raw:
         # Anti-loop check: if code already exists and we're being asked to code again
@@ -128,7 +128,7 @@ def router_node(state: dict) -> dict:
     return {"next_step": decision, "thought": thought, "loop_count": current_loop}
 
 
-def direct_responder(state: dict) -> dict:
+async def direct_responder(state: dict) -> dict:
     """
     Generates a final response to the user, synthesizing all available context.
 
@@ -178,7 +178,7 @@ def direct_responder(state: dict) -> dict:
 
     messages = [SystemMessage(content=system_prompt)] + state["messages"]
 
-    response = llm.invoke(messages)
+    response = await llm.ainvoke(messages)
     final_response = response.content
 
     # Determine the thought based on what context was used

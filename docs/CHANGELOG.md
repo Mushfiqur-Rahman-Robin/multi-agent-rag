@@ -9,11 +9,22 @@ All notable changes to this project will be documented in this file.
 - Integration tests for API endpoints with security verification.
 - API Key authentication documentation in `docs/api.md`.
 - Architecture security layer details in `docs/ARCHITECTURE.md`.
+- `aiofiles` dependency for non-blocking file I/O.
+
+### Changed
+- **Async/Await Optimization**: Audited the entire codebase for correct asynchronous usage.
+  - Refactored `CacheService` to use `redis.asyncio` for non-blocking Redis operations.
+  - Updated `VectorStoreService` to offload blocking LangChain and ChromaDB operations to worker threads using `anyio`.
+  - Converted `create_multimodal_message` and `encode_image` to asynchronous functions using `aiofiles`.
+  - Replaced blocking file I/O in API routes with asynchronous `aiofiles` operations.
+  - **Fixed Tools Protocol**: Converted `google_search` and `vector_search` tools to asynchronous (`async def`) to correctly await service calls, fixing the issue where Knowledge Base results were returning coroutine objects instead of data.
+  - Initialized `CacheService` within the FastAPI lifespan for proper resource management.
 
 ### Fixed
 - Fixed `AttributeError` in `ChatRepository` unit tests related to async mocking.
 - Fixed `AssertionError` in `ChatService` unit tests by properly matching keyword arguments in `add_message`.
 - Fixed `403 Forbidden` errors in integration tests by implementing proper `X-API-Key` header handling.
+- **Security**: Fixed `bandit` B110 issues in `CacheService` by replacing empty `except: pass` blocks with debug logging.
 - Installed missing `redis` dependency in the virtual environment.
 
 ### Security

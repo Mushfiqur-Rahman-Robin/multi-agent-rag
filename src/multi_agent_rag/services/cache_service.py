@@ -13,7 +13,7 @@ import hashlib
 import json
 from typing import Any
 
-import redis
+from redis import asyncio as redis
 from redis.exceptions import ConnectionError, TimeoutError
 
 from src.multi_agent_rag.core.config import (
@@ -34,10 +34,7 @@ from src.multi_agent_rag.core.logging_config import logger
 class CacheService:
     """
     Redis-based caching service with automatic TTL and invalidation.
-
-    Implements the Singleton pattern to maintain a single Redis connection pool.
-    Provides graceful fallback when Redis is unavailable.
-    Tracks hit/miss ratios for performance auditing.
+    Supports asynchronous operations.
     """
 
     _instance = None
@@ -50,14 +47,17 @@ class CacheService:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._initialize()
+            cls._instance._client = None
         return cls._instance
 
-    def _initialize(self):
-        """Initialize the Redis connection."""
+    async def initialize(self):
+        """Initialize the Redis connection asynchronously."""
         if not CACHE_ENABLED:
             logger.info("Cache is disabled via configuration.")
             self._client = None
+            return
+
+        if self._client:
             return
 
         try:
@@ -73,19 +73,23 @@ class CacheService:
                 health_check_interval=30,
             )
             # Test connection
-            self._client.ping()
+            await self._client.ping()
             logger.info(f"Redis cache connected: {REDIS_HOST}:{REDIS_PORT}")
-        except (ConnectionError, TimeoutError) as e:
+        except (ConnectionError, TimeoutError, Exception) as e:
             logger.warning(f"Redis connection failed: {e}. Caching disabled.")
             self._client = None
 
     @property
     def is_available(self) -> bool:
-        """Check if Redis is available and responsive."""
-        if self._client is None:
+        """Check if Redis client is configured. Ping check should be awaited separately if needed."""
+        return self._client is not None
+
+    async def check_connection(self) -> bool:
+        """Actively check if Redis is responsive."""
+        if not self._client:
             return False
         try:
-            self._client.ping()
+            await self._client.ping()
             return True
         except Exception:
             return False
@@ -95,30 +99,39 @@ class CacheService:
         content_hash = hashlib.sha256(content.encode()).hexdigest()[:32]
         return f"{prefix}{content_hash}"
 
-    def _track_hit(self):
+    async def _track_hit(self):
         """Increment hit counter."""
         if self.is_available:
-            self._client.incr(self.STATS_HITS)
+            try:
+                await self._client.incr(self.STATS_HITS)
+            except Exception as e:
+                logger.debug(f"Failed to track cache hit: {e}")
 
-    def _track_miss(self):
+    async def _track_miss(self):
         """Increment miss counter."""
         if self.is_available:
-            self._client.incr(self.STATS_MISSES)
+            try:
+                await self._client.incr(self.STATS_MISSES)
+            except Exception as e:
+                logger.debug(f"Failed to track cache miss: {e}")
 
-    def get_stats(self) -> dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Retrieve cache hit/miss statistics."""
         if not self.is_available:
             return {"hits": 0, "misses": 0, "ratio": 0}
 
-        hits = int(self._client.get(self.STATS_HITS) or 0)
-        misses = int(self._client.get(self.STATS_MISSES) or 0)
-        total = hits + misses
-        ratio = (hits / total) if total > 0 else 0
-        return {"hits": hits, "misses": misses, "ratio": round(ratio, 4)}
+        try:
+            hits = int(await self._client.get(self.STATS_HITS) or 0)
+            misses = int(await self._client.get(self.STATS_MISSES) or 0)
+            total = hits + misses
+            ratio = (hits / total) if total > 0 else 0
+            return {"hits": hits, "misses": misses, "ratio": round(ratio, 4)}
+        except Exception:
+            return {"hits": 0, "misses": 0, "ratio": 0}
 
     # ==================== Core Cache Operations ====================
 
-    def get(self, key: str) -> Any | None:
+    async def get(self, key: str) -> Any | None:
         """
         Retrieve a value from cache.
         """
@@ -126,19 +139,19 @@ class CacheService:
             return None
 
         try:
-            value = self._client.get(key)
+            value = await self._client.get(key)
             if value:
                 logger.debug(f"Cache HIT: {key}")
-                self._track_hit()
+                await self._track_hit()
                 return json.loads(value)
             logger.debug(f"Cache MISS: {key}")
-            self._track_miss()
+            await self._track_miss()
             return None
         except Exception as e:
             logger.warning(f"Cache get failed: {e}")
             return None
 
-    def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """
         Store a value in cache with TTL.
         """
@@ -149,26 +162,26 @@ class CacheService:
 
         try:
             serialized = json.dumps(value)
-            self._client.setex(key, ttl, serialized)
+            await self._client.setex(key, ttl, serialized)
             logger.debug(f"Cache SET: {key} (TTL: {ttl}s)")
             return True
         except Exception as e:
             logger.warning(f"Cache set failed: {e}")
             return False
 
-    def delete(self, key: str) -> bool:
+    async def delete(self, key: str) -> bool:
         """Delete a specific key from cache."""
         if not self.is_available:
             return False
 
         try:
-            self._client.delete(key)
+            await self._client.delete(key)
             return True
         except Exception as e:
             logger.warning(f"Cache delete failed: {e}")
             return False
 
-    def invalidate_pattern(self, pattern: str) -> int:
+    async def invalidate_pattern(self, pattern: str) -> int:
         """
         Invalidate all keys matching a pattern.
         """
@@ -176,9 +189,9 @@ class CacheService:
             return 0
 
         try:
-            keys = self._client.keys(pattern)
+            keys = await self._client.keys(pattern)
             if keys:
-                count = self._client.delete(*keys)
+                count = await self._client.delete(*keys)
                 logger.info(f"Cache invalidated {count} keys matching: {pattern}")
                 return count
             return 0
@@ -188,47 +201,47 @@ class CacheService:
 
     # ==================== Specialized Cache Methods ====================
 
-    def get_research_cache(self, query: str) -> str | None:
+    async def get_research_cache(self, query: str) -> str | None:
         key = self._generate_key(CACHE_PREFIX_RESEARCH, query.lower().strip())
-        return self.get(key)
+        return await self.get(key)
 
-    def set_research_cache(self, query: str, research_data: str):
+    async def set_research_cache(self, query: str, research_data: str):
         key = self._generate_key(CACHE_PREFIX_RESEARCH, query.lower().strip())
-        self.set(key, research_data)
+        await self.set(key, research_data)
 
-    def get_vector_cache(self, query: str) -> str | None:
+    async def get_vector_cache(self, query: str) -> str | None:
         key = self._generate_key(CACHE_PREFIX_VECTOR, query.lower().strip())
-        return self.get(key)
+        return await self.get(key)
 
-    def set_vector_cache(self, query: str, results: str):
+    async def set_vector_cache(self, query: str, results: str):
         key = self._generate_key(CACHE_PREFIX_VECTOR, query.lower().strip())
-        self.set(key, results)
+        await self.set(key, results)
 
-    def get_embeddings_cache(self, text: str) -> list | None:
+    async def get_embeddings_cache(self, text: str) -> list | None:
         key = self._generate_key(CACHE_PREFIX_EMBEDDINGS, text)
-        return self.get(key)
+        return await self.get(key)
 
-    def set_embeddings_cache(self, text: str, embeddings: list):
+    async def set_embeddings_cache(self, text: str, embeddings: list):
         key = self._generate_key(CACHE_PREFIX_EMBEDDINGS, text)
-        self.set(key, embeddings)
+        await self.set(key, embeddings)
 
-    def get_response_cache(self, message_hash: str) -> dict | None:
+    async def get_response_cache(self, message_hash: str) -> dict | None:
         key = f"{CACHE_PREFIX_RESPONSE}{message_hash}"
-        return self.get(key)
+        return await self.get(key)
 
-    def set_response_cache(self, message_hash: str, response: dict):
+    async def set_response_cache(self, message_hash: str, response: dict):
         key = f"{CACHE_PREFIX_RESPONSE}{message_hash}"
-        self.set(key, response)
+        await self.set(key, response)
 
     # ==================== Cache Invalidation ====================
 
-    def invalidate_research(self):
-        self.invalidate_pattern(f"{CACHE_PREFIX_RESEARCH}*")
+    async def invalidate_research(self):
+        await self.invalidate_pattern(f"{CACHE_PREFIX_RESEARCH}*")
 
-    def invalidate_vector(self):
-        self.invalidate_pattern(f"{CACHE_PREFIX_VECTOR}*")
+    async def invalidate_vector(self):
+        await self.invalidate_pattern(f"{CACHE_PREFIX_VECTOR}*")
 
-    def invalidate_all(self) -> int:
+    async def invalidate_all(self) -> int:
         total = 0
         for prefix in [
             CACHE_PREFIX_RESEARCH,
@@ -236,14 +249,18 @@ class CacheService:
             CACHE_PREFIX_RESPONSE,
             CACHE_PREFIX_EMBEDDINGS,
         ]:
-            total += self.invalidate_pattern(f"{prefix}*")
+            total += await self.invalidate_pattern(f"{prefix}*")
         return total
 
-    def on_knowledge_base_update(self):
+    async def on_knowledge_base_update(self):
         """Invalidate research and vector caches as they depend on KB state."""
         logger.info("Knowledge base changed. Invalidating research and vector caches.")
-        self.invalidate_research()
-        self.invalidate_vector()
+        await self.invalidate_research()
+        await self.invalidate_vector()
+
+
+# Singleton instance
+cache_service = CacheService()
 
 
 # Singleton instance

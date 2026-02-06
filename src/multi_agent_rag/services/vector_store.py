@@ -8,6 +8,7 @@ using ChromaDB and OpenAI Embeddings. Integrated with Redis for caching.
 import os
 from pathlib import Path
 
+import anyio
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_openai import OpenAIEmbeddings
@@ -65,7 +66,7 @@ class VectorStoreService:
             else:
                 loader = TextLoader(file_path)
 
-            documents = loader.load()
+            documents = await anyio.to_thread.run_sync(loader.load)
 
             # Estimate cost
             total_chars = sum(len(doc.page_content) for doc in documents)
@@ -74,17 +75,17 @@ class VectorStoreService:
             logger.info(f"Embedding Ingestion: ~{est_tokens} tokens, Cost: ${cost}")
 
             splits = self.text_splitter.split_documents(documents)
-            self.vector_store.add_documents(splits)
+            await anyio.to_thread.run_sync(self.vector_store.add_documents, splits)
             logger.info(f"Successfully indexed {len(splits)} chunks from {file_path}")
 
             # Invalidate caches if enabled
             if CACHE_INVALIDATE_ON_KB_UPDATE and cache_service:
-                cache_service.on_knowledge_base_update()
+                await cache_service.on_knowledge_base_update()
 
             # Cleanup File
             if UPLOAD_CLEANUP:
                 try:
-                    os.remove(file_path)
+                    await anyio.to_thread.run_sync(os.remove, file_path)
                     logger.info(f"Cleaned up uploaded file: {file_path}")
                 except OSError as e:
                     logger.warning(f"Failed to cleanup file {file_path}: {e}")
@@ -100,7 +101,7 @@ class VectorStoreService:
         """
         # Check cache first
         if cache_service and cache_service.is_available:
-            cached_result = cache_service.get_vector_cache(query)
+            cached_result = await cache_service.get_vector_cache(query)
             if cached_result:
                 logger.info(f"Vector search cache HIT for: {query[:50]}...")
                 return cached_result
@@ -114,7 +115,9 @@ class VectorStoreService:
             cost = cost_service.calculate_embedding_cost(VECTOR_MODEL, est_tokens)
             logger.info(f"Embedding Query: ~{est_tokens} tokens, Cost: ${cost}")
 
-            results = self.vector_store.similarity_search(query, k=k)
+            results = await anyio.to_thread.run_sync(
+                lambda: self.vector_store.similarity_search(query, k=k)
+            )
             if not results:
                 return ""
 
@@ -122,7 +125,7 @@ class VectorStoreService:
 
             # Store in cache
             if cache_service and cache_service.is_available:
-                cache_service.set_vector_cache(query, context)
+                await cache_service.set_vector_cache(query, context)
 
             return context
         except Exception as e:
@@ -132,7 +135,7 @@ class VectorStoreService:
     async def list_documents(self) -> list[str]:
         """List distinct filenames in the vector store."""
         try:
-            data = self.vector_store.get()
+            data = await anyio.to_thread.run_sync(self.vector_store.get)
             metadatas = data["metadatas"]
             unique_files = set()
             for m in metadatas:
@@ -147,7 +150,7 @@ class VectorStoreService:
     async def delete_document(self, filename: str) -> bool:
         """Delete a document by filename and invalidate cache."""
         try:
-            data = self.vector_store.get()
+            data = await anyio.to_thread.run_sync(self.vector_store.get)
             ids_to_delete = []
             for i, meta in enumerate(data["metadatas"]):
                 if meta and "source" in meta:
@@ -155,12 +158,12 @@ class VectorStoreService:
                         ids_to_delete.append(data["ids"][i])
 
             if ids_to_delete:
-                self.vector_store.delete(ids_to_delete)
+                await anyio.to_thread.run_sync(self.vector_store.delete, ids_to_delete)
                 logger.info(f"Deleted {len(ids_to_delete)} chunks for {filename}")
 
                 # Invalidate caches
                 if CACHE_INVALIDATE_ON_KB_UPDATE and cache_service:
-                    cache_service.on_knowledge_base_update()
+                    await cache_service.on_knowledge_base_update()
 
                 return True
             return False

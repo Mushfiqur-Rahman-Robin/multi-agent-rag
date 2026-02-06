@@ -149,7 +149,7 @@ class ChatService:
         # Check Response Cache
         request_hash = self._get_request_hash(message, history, files)
         if cache_service and cache_service.is_available:
-            cached_resp = cache_service.get_response_cache(request_hash)
+            cached_resp = await cache_service.get_response_cache(request_hash)
             if cached_resp:
                 logger.info(f"Response cache HIT for thread {thread_id}")
                 await self.repository.add_message(thread_id, "human", message)
@@ -157,7 +157,7 @@ class ChatService:
                 return thread_id, cached_resp
 
         # Prepare Graph State
-        human_msg = create_multimodal_message(message, files)
+        human_msg = await create_multimodal_message(message, files)
         initial_state = {
             "messages": [*history, human_msg],
             "research_output": "",
@@ -206,7 +206,7 @@ class ChatService:
 
         # Cache Response
         if cache_service and cache_service.is_available:
-            cache_service.set_response_cache(request_hash, ai_content)
+            await cache_service.set_response_cache(request_hash, ai_content)
 
         await self.repository.add_message(thread_id, "human", message)
         await self.repository.add_message(
@@ -240,14 +240,14 @@ class ChatService:
         # Check Cache
         request_hash = self._get_request_hash(message, history, files)
         if cache_service and cache_service.is_available:
-            cached_resp = cache_service.get_response_cache(request_hash)
+            cached_resp = await cache_service.get_response_cache(request_hash)
             if cached_resp:
                 logger.info(f"Response cache HIT (stream) for thread {thread_id}")
                 yield f"data: {json.dumps({'thread_id': thread_id, 'final': cached_resp})}\n\n"
                 return
 
         # Prepare State
-        human_msg = create_multimodal_message(message, files)
+        human_msg = await create_multimodal_message(message, files)
         initial_state = {
             "messages": [*history, human_msg],
             "research_output": "",
@@ -293,7 +293,7 @@ class ChatService:
                 }
 
                 if cache_service and cache_service.is_available:
-                    cache_service.set_response_cache(request_hash, ai_content)
+                    await cache_service.set_response_cache(request_hash, ai_content)
 
                 await self.repository.add_message(
                     thread_id,

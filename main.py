@@ -26,11 +26,14 @@ from src.multi_agent_rag.core.config import (
 from src.multi_agent_rag.core.limiter import limiter
 from src.multi_agent_rag.core.logging_config import logger, request_id_var
 from src.multi_agent_rag.models.chat import init_db
+from src.multi_agent_rag.services.cache_service import cache_service
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application starting up...")
+    # Initialize cache service
+    await cache_service.initialize()
     # Verify database connection is alive before serving requests
     await init_db()
     yield
