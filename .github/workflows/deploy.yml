@@ -3,7 +3,6 @@ name: Deploy to Server
 on:
   push:
     branches:
-      - staging
       - main
 
 jobs:
@@ -41,7 +40,7 @@ jobs:
             # We tell docker compose specifically which env file to use
             docker compose --env-file $ENV_FILE up -d --build --remove-orphans
 
-            # Clean up unused images to save space
-            docker image prune -f
+            # Clean up only outdated/dangling images for THIS project
+            docker image prune -f --filter "label=com.docker.compose.project=multi-agent-rag"
 
             echo "Deployment Complete on port 8777"
