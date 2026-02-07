@@ -24,25 +24,31 @@ Aura uses a stateful computational graph where nodes represent specialized agent
 - Uses Alembic for schema migrations.
 - Implements a thread-based history mechanism for the agents to maintain context.
 
-### 4. File Storage Strategy
-- **User Uploads**: Mounted volume at `/user_upload` persists user files (images/PDFs) natively.
-- **Static Hosting**: Files are served directly via FastAPI static mounts for immediate retrieval.
-- **Message Linking**: URLs are stored in the JSON message content in Postgres to maintain conversational context.
+### 4. Caching & Performance (Redis Stack)
+- **Redis Stack**: Orchestrates multiple caching tiers to reduce latency and API costs.
+- **Research Cache**: Stores research reports to skip redundant web searches.
+- **Response Cache**: Uses request context hashing (message + history + files) for instant response retrieval.
+- **Vector Cache**: Optimizes repeated semantic search queries.
 
-### 5. Interactive Frontend (Vanilla JS + CSS)
-- **Responsive Design**: Premium dark-mode interface.
-- **Real-time Feedback**: Visualises agent "thoughts" and intermediate steps (plans, code outputs).
-- **Multimodal Support**: Handles file uploads (images/audio) for cross-modal reasoning.
+### 5. File Storage Strategy
+- **User Uploads**: Mounted volumes at `/app/user_upload` and `/app/uploads` persist user files natively.
+- **Static Hosting**: Files are served directly via FastAPI static mounts.
+- **Message Linking**: URLs are stored in JSON message content in Postgres.
+
+### 6. Interactive Frontend (Vanilla JS + CSS)
+- **Responsive Design**: Premium dark-mode interface optimized for high-resolution displays.
+- **Real-time Feedback**: Streams agent "thoughts" and intermediate plans via SSE.
 
 ## 🔄 Interaction Flow
 
 1. **User Query**: The user sends a request through the frontend.
-2. **Intent Routing**: The Router agent evaluates whether to go to Research, Planning, or Implementation based on current state.
-3. **Agent Execution**: The selected agent performs its task and returns a human-readable summary.
-4. **Human Feedback**: The system stops and waits for user confirmation or further instructions, enabling iterative refinement.
+2. **Intent Routing**: The Router agent evaluates whether to go to Research, Planning, or Implementation.
+3. **Agent Execution**: Selected agents gather data, plan, and code.
+4. **Final Synthesis**: The Responder agent produces a polished output including implementation code.
 
-## 🛡️ Security & Performance
-- **API Security**: Implements `X-API-Key` mandatory header verification for all business-critical endpoints.
-- **Non-Root Execution**: Runs as a non-root user in Docker to minimize attack surface.
-- **Optimized Builds**: Multi-stage Docker builds for minimal image size.
-- **Reliability**: Connection pooling and exponential backoff retry logic for database and LLM calls.
+## 🛡️ Security & CI/CD
+- **API Security**: `X-API-Key` mandatory verification for all sensitive endpoints.
+- **Automated CI**: GitHub Actions (Pytest, Ruff, Bandit, Detect-secrets) on every push.
+- **Deployment**: Branch-aware SSH deployment to remote servers using GitHub Actions.
+- **Non-Root Execution**: Optimized Docker security running as `appuser`.
+- **Environment Isolation**: Distinct `.env.dev`, `.env.staging`, and `.env.prod` configurations.

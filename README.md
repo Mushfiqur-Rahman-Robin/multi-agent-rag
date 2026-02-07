@@ -36,13 +36,16 @@ The system follows a star-pattern orchestration:
 
 ### Deployment (Docker)
 1.  **Configure Environment**:
-    Create a `.env` file in the root directory:
-    ```env
-    OPENAI_API_KEY=your_key_here
-    TAVILY_API_KEY=your_key_here
-    LOG_LEVEL=INFO
-    CACHE_ENABLED=true
+    The system uses branch-aware environment files. You should create the appropriate file based on your environment:
+    *   **Development**: `.env.dev`
+    *   **Staging**: `.env.staging`
+    *   **Production**: `.env.prod`
+
+    The app automatically picks the correct file:
+    ```bash
+    cp .env.example .env.dev  # For local development
     ```
+    Ensure essential keys are set: `OPENAI_API_KEY`, `TAVILY_API_KEY`, and `APPLICATION_API_KEY`.
 2.  **Start the System**:
     ```bash
     docker compose up --build
