@@ -6,11 +6,11 @@ from dotenv import load_dotenv
 # Base Directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
-# Load environment variables (Staging Branch)
+# Load environment variables (Main/Production Branch)
 LOADED_ENV_FILE = os.getenv("ENV_FILE")
 if not LOADED_ENV_FILE:
-    if (BASE_DIR / ".env.staging").exists():
-        LOADED_ENV_FILE = ".env.staging"
+    if (BASE_DIR / ".env.prod").exists():
+        LOADED_ENV_FILE = ".env.prod"
     else:
         LOADED_ENV_FILE = ".env"
 
@@ -23,14 +23,14 @@ else:
     LOADED_ENV_FILE = ".env (default)"
 
 # Application Settings
-ENVIRONMENT = os.getenv("ENVIRONMENT", "staging")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")  # nosec
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 APP_RELOAD = os.getenv("APP_RELOAD", "false").lower() == "true"
 ALLOWED_ORIGINS_RAW = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:8000,https://chat.mushfiqur.xyz",
+    "https://chat.mushfiqur.xyz",
 )
 ALLOWED_ORIGINS = ALLOWED_ORIGINS_RAW.split(",")
 
