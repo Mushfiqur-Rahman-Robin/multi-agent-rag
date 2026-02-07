@@ -49,8 +49,9 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - .:/app
       - ./logs:/app/logs
+      - ./uploads:/app/uploads
+      - ./user_upload:/app/user_upload
     networks:
       - rag-network
 
