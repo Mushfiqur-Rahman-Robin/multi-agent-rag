@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-02-07
+
+### Added
+- **Branch-Aware Configuration**: Implemented automatic `.env.dev`, `.env.staging`, and `.env.prod` loading based on branch context.
+- **Deployment Automation**: Added GitHub Actions workflow for automated SSH deployment.
+- **Environment Logging**: Application now logs current mode and loaded configuration file on startup.
+
+### Changed
+- **Port Standardization**: Migrated default application port from `8000` to `8777` across Docker and local configurations.
+- **Production Hardening**: Set `APP_RELOAD=false` and strict `ALLOWED_ORIGINS` by default for main/staging branches.
+
+---
+
 ## [0.1.0] - 2026-02-06
 
 ### Added

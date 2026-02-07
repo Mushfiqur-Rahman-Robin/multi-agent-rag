@@ -14,10 +14,15 @@
    ```
 
 2. **Configure Environment**:
-   Copy the example environment file and fill in your keys.
+   Aura uses an environment-aware configuration system. Create a file based on your branch:
+   - **Local/Dev**: `.env.dev`
+   - **Staging**: `.env.staging`
+   - **Production**: `.env.prod`
+
    ```bash
-   cp .env.example .env
+   cp .env.example .env.dev
    ```
+   *Note: If no specific file is found, it will fallback to `.env`.*
 
 3. **Run with Docker**:
    ```bash
