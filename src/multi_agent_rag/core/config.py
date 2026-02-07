@@ -3,10 +3,21 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
-
 # Base Directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+
+# Load environment variables (Staging Branch)
+env_file = os.getenv("ENV_FILE")
+if not env_file:
+    if (BASE_DIR / ".env.staging").exists():
+        env_file = ".env.staging"
+    else:
+        env_file = ".env"
+
+if (BASE_DIR / str(env_file)).exists():
+    load_dotenv(BASE_DIR / str(env_file))
+else:
+    load_dotenv()
 
 # Application Settings
 ENVIRONMENT = os.getenv("ENVIRONMENT", "staging")
@@ -14,7 +25,11 @@ APP_HOST = os.getenv("APP_HOST", "0.0.0.0")  # nosec
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 APP_RELOAD = os.getenv("APP_RELOAD", "false").lower() == "true"
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS").split(",")
+ALLOWED_ORIGINS_RAW = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:8000,https://chat.mushfiqur.xyz",
+)
+ALLOWED_ORIGINS = ALLOWED_ORIGINS_RAW.split(",")
 
 # Models
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4.1-mini")
