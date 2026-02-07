@@ -47,7 +47,7 @@ The system follows a star-pattern orchestration:
     ```bash
     docker compose up --build
     ```
-    Access the UI at `http://localhost:8000`.
+    Access the UI at `http://localhost:8777`.
 
 ## 📚 API Endpoints
 

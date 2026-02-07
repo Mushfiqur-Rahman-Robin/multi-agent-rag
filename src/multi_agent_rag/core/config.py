@@ -25,12 +25,12 @@ else:
 # Application Settings
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")  # nosec
-APP_PORT = int(os.getenv("APP_PORT", "8000"))
+APP_PORT = int(os.getenv("APP_PORT", "8777"))
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 APP_RELOAD = os.getenv("APP_RELOAD", "true").lower() == "true"
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000,https://chat.mushfiqur.xyz",
+    "http://localhost:3000,http://localhost:8777,http://127.0.0.1:8777,https://chat.mushfiqur.xyz",
 ).split(",")
 
 # Models

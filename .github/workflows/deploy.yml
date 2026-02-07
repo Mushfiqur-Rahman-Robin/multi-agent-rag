@@ -1,0 +1,47 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            echo "Starting Deployment for branch: ${{ github.ref_name }}..."
+
+            # Go to folder
+            cd ~/multi-agent-rag
+
+            # Fetch and reset hard to the branch that was pushed
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
+
+            # Determine the correct .env file
+            if [ "${{ github.ref_name }}" == "main" ]; then
+              ENV_FILE=".env.prod"
+            else
+              ENV_FILE=".env.${{ github.ref_name }}"
+            fi
+
+            echo "Using environment file: $ENV_FILE"
+
+            # Rebuild and restart containers (without stopping first to reduce downtime)
+            # We tell docker compose specifically which env file to use
+            docker compose --env-file $ENV_FILE up -d --build --remove-orphans
+
+            # Clean up unused images to save space
+            docker image prune -f
+
+            echo "Deployment Complete on port 8777"

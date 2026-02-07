@@ -39,6 +39,6 @@ RUN chmod +x /app/entrypoint.sh
 # Switch to non-root user
 USER appuser
 
-EXPOSE 8000
+EXPOSE 8777
 
 ENTRYPOINT ["./entrypoint.sh"]

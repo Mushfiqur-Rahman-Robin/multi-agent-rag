@@ -25,7 +25,7 @@
    ```
 
 4. **Access the app**:
-   Open [http://localhost:8000](http://localhost:8000) in your browser.
+   Open [http://localhost:8777](http://localhost:8777) in your browser.
 
 ## Virtual Environment (Local Development)
 
