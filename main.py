@@ -22,6 +22,8 @@ from src.multi_agent_rag.core.config import (
     APP_HOST,
     APP_PORT,
     APP_RELOAD,
+    ENVIRONMENT,
+    LOADED_ENV_FILE,
 )
 from src.multi_agent_rag.core.limiter import limiter
 from src.multi_agent_rag.core.logging_config import logger, request_id_var
@@ -31,7 +33,9 @@ from src.multi_agent_rag.services.cache_service import cache_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Application starting up...")
+    logger.info(
+        f"Application starting up in {ENVIRONMENT} mode (File: {LOADED_ENV_FILE})"
+    )
     # Initialize cache service
     await cache_service.initialize()
     # Verify database connection is alive before serving requests

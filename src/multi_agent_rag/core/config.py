@@ -7,17 +7,20 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 # Load environment variables (Staging Branch)
-env_file = os.getenv("ENV_FILE")
-if not env_file:
+LOADED_ENV_FILE = os.getenv("ENV_FILE")
+if not LOADED_ENV_FILE:
     if (BASE_DIR / ".env.staging").exists():
-        env_file = ".env.staging"
+        LOADED_ENV_FILE = ".env.staging"
     else:
-        env_file = ".env"
+        LOADED_ENV_FILE = ".env"
 
-if (BASE_DIR / str(env_file)).exists():
-    load_dotenv(BASE_DIR / str(env_file))
+if (BASE_DIR / str(LOADED_ENV_FILE)).exists():
+    print(f"--- Loading environment from: {LOADED_ENV_FILE} ---")
+    load_dotenv(BASE_DIR / str(LOADED_ENV_FILE))
 else:
+    print("--- Loading environment from: default .env ---")
     load_dotenv()
+    LOADED_ENV_FILE = ".env (default)"
 
 # Application Settings
 ENVIRONMENT = os.getenv("ENVIRONMENT", "staging")
