@@ -9,20 +9,12 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 # Application Settings
+ENVIRONMENT = os.getenv("ENVIRONMENT", "staging")
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")  # nosec
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
-APP_RELOAD = os.getenv("APP_RELOAD", "true").lower() == "true"
-ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://0.0.0.0:8000",
-    "http://mushfiqur.xyz",
-    "https://mushfiqur.xyz",
-    "http://chat.mushfiqur.xyz",
-    "https://chat.mushfiqur.xyz",
-]
+APP_RELOAD = os.getenv("APP_RELOAD", "false").lower() == "true"
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS").split(",")
 
 # Models
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4.1-mini")
