@@ -25,7 +25,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.multi_agent_rag.core.config import (
     APPLICATION_API_KEY,
+    CACHE_AUDIT_HISTORY_LIMIT,
     CHAT_FILE_SIZE_LIMIT,
+    DEFAULT_PAGE_SIZE_MESSAGES,
+    DEFAULT_PAGE_SIZE_SESSIONS,
     KB_FILE_SIZE_LIMIT,
     RATE_LIMIT_PER_MINUTE,
     USER_UPLOAD_FILE_DIR,
@@ -152,12 +155,17 @@ async def get_cache_stats(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/cache/audit", dependencies=[Depends(verify_api_key)])
-async def get_cache_audit(db: AsyncSession = Depends(get_db)):
+async def get_cache_audit(
+    limit: int | None = None,
+    db: AsyncSession = Depends(get_db),
+):
     """
     Retrieve historical cache audit snapshots from the database.
     """
+    if limit is None:
+        limit = CACHE_AUDIT_HISTORY_LIMIT
     repo = ChatRepository(db)
-    history = await repo.get_cache_audit_history()
+    history = await repo.get_cache_audit_history(limit=limit)
     return {"history": history}
 
 
@@ -270,11 +278,21 @@ async def chat_stream(
     response_model=list[Conversation],
     dependencies=[Depends(verify_api_key)],
 )
-async def list_sessions(service: ChatService = Depends(get_chat_service)):
+async def list_sessions(
+    limit: int | None = None,
+    offset: int = 0,
+    service: ChatService = Depends(get_chat_service),
+):
     """
-    Retrieve all conversation threads.
+    Retrieve conversation threads with pagination.
+
+    Args:
+        limit: Maximum number of sessions to return (default: 50)
+        offset: Number of sessions to skip
     """
-    return await service.get_all_sessions()
+    if limit is None:
+        limit = DEFAULT_PAGE_SIZE_SESSIONS
+    return await service.get_all_sessions(limit=limit, offset=offset)
 
 
 @router.get(
@@ -282,11 +300,23 @@ async def list_sessions(service: ChatService = Depends(get_chat_service)):
     response_model=list[Message],
     dependencies=[Depends(verify_api_key)],
 )
-async def get_session(thread_id: str, service: ChatService = Depends(get_chat_service)):
+async def get_session(
+    thread_id: str,
+    limit: int | None = None,
+    offset: int = 0,
+    service: ChatService = Depends(get_chat_service),
+):
     """
-    Get the full message history for a specific thread.
+    Get the message history for a specific thread with pagination.
+
+    Args:
+        thread_id: The conversation thread ID
+        limit: Maximum number of messages to return (default: 50)
+        offset: Number of messages to skip
     """
-    return await service.get_session_history(thread_id)
+    if limit is None:
+        limit = DEFAULT_PAGE_SIZE_MESSAGES
+    return await service.get_session_history(thread_id, limit=limit, offset=offset)
 
 
 @router.delete("/sessions/{thread_id}", dependencies=[Depends(verify_api_key)])
@@ -299,3 +329,47 @@ async def delete_session(
     logger.info(f"Deleting session: {thread_id}")
     await service.delete_session(thread_id)
     return {"message": "Deleted"}
+
+
+# ==================== Cost Tracking Endpoints ====================
+
+
+@router.get("/costs/models", dependencies=[Depends(verify_api_key)])
+async def get_model_costs(db: AsyncSession = Depends(get_db)):
+    """
+    Get aggregated cost summaries per model.
+    """
+    repo = ChatRepository(db)
+    summaries = await repo.get_model_cost_summaries()
+    return {
+        "summaries": [
+            {
+                "model_name": s.model_name,
+                "total_input_tokens": s.total_input_tokens,
+                "total_output_tokens": s.total_output_tokens,
+                "total_cost": s.total_cost,
+                "request_count": s.request_count,
+                "updated_at": s.updated_at,
+            }
+            for s in summaries
+        ]
+    }
+
+
+@router.get("/costs/models/{model_name}", dependencies=[Depends(verify_api_key)])
+async def get_model_cost(model_name: str, db: AsyncSession = Depends(get_db)):
+    """
+    Get cost summary for a specific model.
+    """
+    repo = ChatRepository(db)
+    summary = await repo.get_model_cost_summary(model_name)
+    if not summary:
+        raise HTTPException(status_code=404, detail=f"Model {model_name} not found")
+    return {
+        "model_name": summary.model_name,
+        "total_input_tokens": summary.total_input_tokens,
+        "total_output_tokens": summary.total_output_tokens,
+        "total_cost": summary.total_cost,
+        "request_count": summary.request_count,
+        "updated_at": summary.updated_at,
+    }

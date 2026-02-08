@@ -8,7 +8,13 @@ and the direct responder for generating final user-facing responses.
 from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
 
-from src.multi_agent_rag.core.config import DEFAULT_MODEL, OPENAI_API_KEY
+from src.multi_agent_rag.core.config import (
+    DEFAULT_MODEL,
+    OPENAI_API_KEY,
+    ROUTER_HISTORY_CONTEXT_SIZE,
+    ROUTER_MAX_LOOP_COUNT,
+    ROUTER_MESSAGE_TRUNCATE_LENGTH,
+)
 from src.multi_agent_rag.core.logging_config import logger
 from src.multi_agent_rag.core.prompts import PROMPTS
 
@@ -57,7 +63,7 @@ async def router_node(state: dict) -> dict:
     logger.info(f"Router node evaluating (Cycle {current_loop}).")
 
     # Safety break for infinite loops - more aggressive
-    if current_loop > 3:
+    if current_loop > ROUTER_MAX_LOOP_COUNT:
         logger.warning(f"Max loop count ({current_loop}) reached. Forcing response.")
         return {
             "next_step": "respond",
@@ -73,11 +79,17 @@ async def router_node(state: dict) -> dict:
 
     # Build concise history for context (limit to recent messages)
     history_elements = []
-    for m in messages[-6:-1]:  # Last 5 messages before current, for context
+    history_start = -ROUTER_HISTORY_CONTEXT_SIZE
+    history_end = -1
+    for m in messages[history_start:history_end]:  # Recent messages for context
         content = get_text_content(m)
         role = getattr(m, "type", "unknown")
         # Truncate long messages
-        truncated = content[:200] + "..." if len(content) > 200 else content
+        truncated = (
+            content[:ROUTER_MESSAGE_TRUNCATE_LENGTH] + "..."
+            if len(content) > ROUTER_MESSAGE_TRUNCATE_LENGTH
+            else content
+        )
         history_elements.append(f"{role}: {truncated}")
     history_str = (
         "\n".join(history_elements) if history_elements else "No prior messages."

@@ -114,3 +114,34 @@ ERROR_LOG_FILE = LOG_DIR / "error.log"
 # Context Management Settings
 MAX_HISTORY_MESSAGES = int(os.getenv("MAX_HISTORY_MESSAGES", "20"))
 MAX_CONTEXT_CHARS = int(os.getenv("MAX_CONTEXT_CHARS", "32000"))
+
+# Pagination Settings
+DEFAULT_PAGE_SIZE_SESSIONS = int(os.getenv("DEFAULT_PAGE_SIZE_SESSIONS", "50"))
+DEFAULT_PAGE_SIZE_MESSAGES = int(os.getenv("DEFAULT_PAGE_SIZE_MESSAGES", "50"))
+MAX_PAGE_SIZE = int(os.getenv("MAX_PAGE_SIZE", "100"))
+
+# Router Settings
+ROUTER_MAX_LOOP_COUNT = int(os.getenv("ROUTER_MAX_LOOP_COUNT", "3"))
+ROUTER_HISTORY_CONTEXT_SIZE = int(os.getenv("ROUTER_HISTORY_CONTEXT_SIZE", "6"))
+ROUTER_MESSAGE_TRUNCATE_LENGTH = int(os.getenv("ROUTER_MESSAGE_TRUNCATE_LENGTH", "200"))
+
+# Research Settings
+RESEARCH_MAX_ITERATIONS = int(os.getenv("RESEARCH_MAX_ITERATIONS", "3"))
+SEARCH_MAX_RESULTS = int(os.getenv("SEARCH_MAX_RESULTS", "5"))
+
+# Vector Search Settings
+VECTOR_SEARCH_K = int(os.getenv("VECTOR_SEARCH_K", "5"))
+
+# Title Generation Settings
+TITLE_MAX_WORDS = int(os.getenv("TITLE_MAX_WORDS", "5"))
+TITLE_QUERY_TRUNCATE_LENGTH = int(os.getenv("TITLE_QUERY_TRUNCATE_LENGTH", "100"))
+TITLE_MAX_LENGTH = int(os.getenv("TITLE_MAX_LENGTH", "50"))
+
+# Message Content Truncation
+MESSAGE_CONTENT_TRUNCATE_LENGTH = int(
+    os.getenv("MESSAGE_CONTENT_TRUNCATE_LENGTH", "1000")
+)
+CODE_PREVIEW_LENGTH = int(os.getenv("CODE_PREVIEW_LENGTH", "200"))
+
+# Cache Audit Settings
+CACHE_AUDIT_HISTORY_LIMIT = int(os.getenv("CACHE_AUDIT_HISTORY_LIMIT", "100"))

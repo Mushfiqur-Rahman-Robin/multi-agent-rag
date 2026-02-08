@@ -29,7 +29,8 @@ async def test_run_chat_flow_new_session(chat_service, mock_repo):
         "plan": "",
         "code": ""
     }
-    # Mock repo.get_messages and repo.create_conversation
+    # Mock repo.get_recent_messages and repo.create_conversation
+    mock_repo.get_recent_messages.return_value = []
     mock_repo.get_messages.return_value = []
     mock_repo.create_conversation.return_value = AsyncMock()
 
@@ -57,6 +58,7 @@ async def test_run_chat_flow_new_session(chat_service, mock_repo):
         ANY,
         "ai",
         ANY,
+        model_name=ANY,
         input_tokens=ANY,
         output_tokens=ANY,
         cost=ANY
