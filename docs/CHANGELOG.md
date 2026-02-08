@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-02-08
+
+### Added
+- **Per-Model Cost Tracking**: Implemented detailed cost tracking per LLM model in the database (`model_cost_summary` table).
+- **Pagination Support**: Added pagination (limit/offset) for `/sessions` and `/sessions/{thread_id}` endpoints.
+- **Configuration Centralization**: Moved hardcoded variables (agent loop counts, search limits, truncation lengths) to `src/multi_agent_rag/core/config.py`.
+- **System Prompt Registry**: Centralized all system prompts in `src/multi_agent_rag/core/prompts.py`.
+- **UI Screenshot**: Added a visual representation of the Aura Chat UI to the README.
+
+### Changed
+- **Repository Optimization**: Refactored `ChatRepository` to fix N+1 query problems using `selectinload` for eager loading of messages.
+- **Efficient Updates**: Optimized database cost updates to use single-pass `UPDATE` statements instead of select-then-update patterns.
+- **Dependency Management**: Separated production and development dependencies in `pyproject.toml` (development tools moved to `[project.optional-dependencies]`).
+- **Docker Optimization**: Added `.dockerignore` to reduce image size and build context.
+
+### Fixed
+- Fixed unit tests for `ChatService` to correctly handle new `add_message` parameters (`model_name`, `input_tokens`, etc.).
+- Resolved `RuntimeWarning` regarding unawaited coroutines in `ChatRepository` mocks.
+
+---
+
 ## [0.2.0] - 2026-02-07
 
 ### Added

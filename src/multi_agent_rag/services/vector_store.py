@@ -22,6 +22,7 @@ from src.multi_agent_rag.core.config import (
     OPENAI_API_KEY,
     UPLOAD_CLEANUP,
     VECTOR_MODEL,
+    VECTOR_SEARCH_K,
 )
 from src.multi_agent_rag.core.logging_config import logger
 
@@ -97,10 +98,13 @@ class VectorStoreService:
             logger.error(f"Failed to ingest file {file_path}: {e}")
             return False
 
-    async def search(self, query: str, k: int = 5) -> str:
+    async def search(self, query: str, k: int | None = None) -> str:
         """
         Search the vector store for relevant snippets. Supports caching.
         """
+        if k is None:
+            k = VECTOR_SEARCH_K
+
         # Check cache first
         if cache_service and cache_service.is_available:
             cached_result = await cache_service.get_vector_cache(query)

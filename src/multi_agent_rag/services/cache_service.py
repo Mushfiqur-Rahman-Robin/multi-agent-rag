@@ -261,7 +261,3 @@ class CacheService:
 
 # Singleton instance
 cache_service = CacheService()
-
-
-# Singleton instance
-cache_service = CacheService()

@@ -21,7 +21,9 @@ Aura uses a stateful computational graph where nodes represent specialized agent
 
 ### 3. Database & Persistance (PostgreSQL)
 - Stores conversations and multimodal messages.
+- **Cost Tracking**: Persists per-model token usage and costs in a dedicated `model_cost_summary` table for analytics.
 - Uses Alembic for schema migrations.
+- **Pagination**: Optimized repository methods support limit/offset pagination to handle large conversation histories efficiently.
 - Implements a thread-based history mechanism for the agents to maintain context.
 
 ### 4. Caching & Performance (Redis Stack)

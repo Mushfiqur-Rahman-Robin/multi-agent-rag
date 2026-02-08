@@ -46,12 +46,30 @@ Removes a specific document and its embeddings.
 
 ### List Sessions
 `GET /sessions`
-Returns a list of all conversation threads.
+Returns a list of all conversation threads with pagination.
+
+**Query Parameters:**
+- `limit`: (Optional) Maximum number of sessions to return (default: 50, max: 100).
+- `offset`: (Optional) Number of sessions to skip (default: 0).
 
 ### Get Session History
 `GET /sessions/{thread_id}`
-Returns all messages for a specific thread.
+Returns all messages for a specific thread with pagination.
+
+**Query Parameters:**
+- `limit`: (Optional) Maximum number of messages to return (default: 50, max: 100).
+- `offset`: (Optional) Number of messages to skip (default: 0).
 
 ### Delete Session
 `DELETE /sessions/{thread_id}`
 Deletes a specific thread and its history.
+
+## Cost Management
+
+### List Model Costs
+`GET /costs/models`
+Returns a summary of total costs, token usage, and request counts for all models used.
+
+### Get Model Cost
+`GET /costs/models/{model_name}`
+Returns cost details for a specific model.

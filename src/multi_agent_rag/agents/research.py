@@ -8,7 +8,11 @@ Includes caching for repeated queries to improve performance and reduce API cost
 from langchain_core.messages import SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 
-from src.multi_agent_rag.core.config import OPENAI_API_KEY, SEARCH_MODEL
+from src.multi_agent_rag.core.config import (
+    OPENAI_API_KEY,
+    RESEARCH_MAX_ITERATIONS,
+    SEARCH_MODEL,
+)
 from src.multi_agent_rag.core.logging_config import logger
 from src.multi_agent_rag.core.prompts import PROMPTS
 from src.multi_agent_rag.core.tools import google_search, vector_search
@@ -77,7 +81,7 @@ async def research_agent(state: dict) -> dict:
     current_messages = [SystemMessage(content=PROMPTS["research_system"]), *messages]
 
     # Max iterations to avoid infinite tool loops
-    max_iterations = 3
+    max_iterations = RESEARCH_MAX_ITERATIONS
     research_summary = ""
     thought = "Gathering information..."
 
@@ -135,9 +139,7 @@ async def research_agent(state: dict) -> dict:
 
     # Final synthesis if we didn't get a clean summary
     if not research_summary or not research_summary.strip():
-        synthesis_prompt = """Based on the information gathered above, provide a comprehensive,
-        structured research summary that directly answers the user's query.
-        Be thorough but concise. Do not use any tools."""
+        synthesis_prompt = PROMPTS["research_synthesis"]
 
         try:
             synth_start = time.time()
