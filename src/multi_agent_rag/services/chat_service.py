@@ -15,14 +15,19 @@ from langchain_openai import ChatOpenAI
 
 from src.multi_agent_rag.agents.graph import create_multi_agent_graph
 from src.multi_agent_rag.core.config import (
+    CODE_PREVIEW_LENGTH,
     DEFAULT_MODEL,
     MAX_CONTEXT_CHARS,
     MAX_HISTORY_MESSAGES,
+    MESSAGE_CONTENT_TRUNCATE_LENGTH,
     OPENAI_API_KEY,
+    TITLE_MAX_LENGTH,
+    TITLE_QUERY_TRUNCATE_LENGTH,
     USER_UPLOAD_DIR,
 )
 from src.multi_agent_rag.core.logging_config import logger
 from src.multi_agent_rag.core.multimodal import create_multimodal_message
+from src.multi_agent_rag.core.prompts import PROMPTS
 from src.multi_agent_rag.repositories.chat_repository import ChatRepository
 
 # Import cache service
@@ -41,11 +46,13 @@ class ChatService:
         self.repository = repository
         self.graph = create_multi_agent_graph()
 
-    async def get_all_sessions(self):
-        return await self.repository.get_conversations()
+    async def get_all_sessions(self, limit: int | None = None, offset: int = 0):
+        return await self.repository.get_conversations(limit=limit, offset=offset)
 
-    async def get_session_history(self, thread_id: str):
-        return await self.repository.get_messages(thread_id)
+    async def get_session_history(
+        self, thread_id: str, limit: int | None = None, offset: int = 0
+    ):
+        return await self.repository.get_messages(thread_id, limit=limit, offset=offset)
 
     async def delete_session(self, thread_id: str):
         await self.repository.delete_conversation(thread_id)
@@ -65,7 +72,9 @@ class ChatService:
             llm = ChatOpenAI(
                 model=model, openai_api_key=OPENAI_API_KEY, temperature=0.7
             )
-            prompt = f"Generate a short title (max 5 words) for: '{first_message[:100]}'. Return ONLY the title."
+            prompt = PROMPTS["title_generation"].format(
+                query=first_message[:TITLE_QUERY_TRUNCATE_LENGTH]
+            )
 
             from langchain_community.callbacks import get_openai_callback
 
@@ -73,7 +82,7 @@ class ChatService:
 
             with get_openai_callback() as cb:
                 response = await llm.ainvoke(prompt)
-                title = response.content.strip().replace('"', "")[:50]
+                title = response.content.strip().replace('"', "")[:TITLE_MAX_LENGTH]
                 actual_cost = cost_service.calculate_cost(
                     model, cb.prompt_tokens, cb.completion_tokens
                 )
@@ -108,16 +117,20 @@ class ChatService:
                     if isinstance(content_obj, dict)
                     else str(content_obj)
                 )
-                history.append(HumanMessage(content=msg_text[:1000]))
-                total_chars += len(msg_text[:1000])
+                history.append(
+                    HumanMessage(content=msg_text[:MESSAGE_CONTENT_TRUNCATE_LENGTH])
+                )
+                total_chars += len(msg_text[:MESSAGE_CONTENT_TRUNCATE_LENGTH])
             else:
                 if isinstance(content_obj, dict):
                     parts = [content_obj.get("response", "")]
                     if content_obj.get("code"):
-                        parts.append(f"\n[Code: {content_obj['code'][:200]}...]")
-                    msg_text = " ".join(parts)[:1000]
+                        parts.append(
+                            f"\n[Code: {content_obj['code'][:CODE_PREVIEW_LENGTH]}...]"
+                        )
+                    msg_text = " ".join(parts)[:MESSAGE_CONTENT_TRUNCATE_LENGTH]
                 else:
-                    msg_text = str(content_obj)[:1000]
+                    msg_text = str(content_obj)[:MESSAGE_CONTENT_TRUNCATE_LENGTH]
                 history.append(AIMessage(content=msg_text))
                 total_chars += len(msg_text)
 
@@ -153,7 +166,7 @@ class ChatService:
                     thread_id, message, model or DEFAULT_MODEL
                 )
 
-        db_messages = await self.repository.get_messages(thread_id)
+        db_messages = await self.repository.get_recent_messages(thread_id, limit=50)
         history = self._build_context_history(db_messages)
 
         # Check Response Cache
@@ -243,6 +256,7 @@ class ChatService:
             thread_id,
             "ai",
             ai_content,
+            model_name=model or DEFAULT_MODEL,
             input_tokens=total_input,
             output_tokens=total_output,
             cost=actual_cost,
@@ -273,7 +287,7 @@ class ChatService:
                     thread_id, message, model or DEFAULT_MODEL
                 )
 
-        db_messages = await self.repository.get_messages(thread_id)
+        db_messages = await self.repository.get_recent_messages(thread_id, limit=50)
         history = self._build_context_history(db_messages)
 
         # Check Cache
@@ -348,6 +362,7 @@ class ChatService:
                     thread_id,
                     "ai",
                     ai_content,
+                    model_name=model or DEFAULT_MODEL,
                     input_tokens=cb.prompt_tokens,
                     output_tokens=cb.completion_tokens,
                     cost=actual_cost,

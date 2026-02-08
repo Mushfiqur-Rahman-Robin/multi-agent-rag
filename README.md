@@ -18,6 +18,9 @@ Aura is a premium, autonomous multi-agent RAG system designed for high-performan
     *   **Short-term**: Context-aware windowing of recent conversation history.
     *   **Long-term**: Persistent session storage in **PostgreSQL**.
 *   **Multimodal Capabilities**: Native support for text, images, and documents.
+*   **Enterprise Analytics**:
+    -   **Cost Analytics**: Persistent tracking of token usage and costs per model in PostgreSQL.
+    -   **Optimized History**: Efficient history pagination for large-scale production use.
 
 ## 🛠 Architecture
 
@@ -27,6 +30,14 @@ The system follows a star-pattern orchestration:
 3.  **Planner**: Synthesizes research into strategic, step-by-step execution roadmaps.
 4.  **Coder**: Implements plans with Python execution capabilities for verification.
 5.  **Responder**: Synthesizes all agent outputs into a polished, user-facing response.
+
+## 📸 User Interface
+
+<p align="center">
+  <img src="assets/chat-ui.png" alt="Aura Chat UI" width="800"/>
+</p>
+
+*The premium dark-mode interface features real-time agent thoughts, conversation threading, and knowledge base management.*
 
 ## 📥 Getting Started
 
@@ -58,9 +69,10 @@ The system follows a star-pattern orchestration:
 | :--- | :--- | :--- |
 | `/chat/stream` | POST | Stream AI response with real-time agent thoughts. |
 | `/chat` | POST | Synchronous chat interaction. |
-| `/sessions` | GET | List all conversation threads. |
+| `/sessions` | GET | List all conversation threads with pagination. |
 | `/knowledge/upload`| POST | Upload files to the Knowledge Base. |
 | `/knowledge/list` | GET | List indexed documents. |
+| `/costs/models` | GET | Retrieve per-model token usage and cost analytics. |
 | `/cache/stats` | GET | Audit cache hit/miss performance. |
 
 ---

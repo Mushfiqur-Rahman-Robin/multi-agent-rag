@@ -24,6 +24,11 @@
    ```
    *Note: If no specific file is found, it will fallback to `.env`.*
 
+   **New Parameters**:
+   - `DEFAULT_PAGE_SIZE_SESSIONS`: (Optional) Default: 50.
+   - `DEFAULT_PAGE_SIZE_MESSAGES`: (Optional) Default: 50.
+   - `MAX_PAGE_SIZE`: (Optional) Default: 100.
+
 3. **Run with Docker**:
    ```bash
    docker compose up --build
@@ -38,7 +43,8 @@ If you wish to run locally:
 
 1. **Install dependencies using uv**:
    ```bash
-   uv sync
+   uv sync                   # Production dependencies
+   pip install .[dev]        # Development dependencies (testing, linting)
    ```
 
 2. **Activate the environment**:
@@ -49,7 +55,12 @@ If you wish to run locally:
 3. **Set your API Key**:
    Ensure `APPLICATION_API_KEY` is set in your `.env` file. You will need this for all API requests.
 
-4. **Run the application**:
+4. **Run database migrations**:
+   ```bash
+   alembic upgrade head
+   ```
+
+5. **Run the application**:
    ```bash
    python main.py
    ```

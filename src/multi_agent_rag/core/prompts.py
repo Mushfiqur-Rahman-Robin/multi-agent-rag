@@ -156,6 +156,16 @@ NEVER:
 - Be robotic or overly formal
 - Leave the user without the actual solution they requested"""
 
+# Research Synthesis Prompt (used when no clean summary is available)
+RESEARCH_SYNTHESIS_PROMPT = """Based on the information gathered above, provide a comprehensive,
+structured research summary that directly answers the user's query.
+Be thorough but concise. Do not use any tools."""
+
+# Title Generation Prompt
+TITLE_GENERATION_PROMPT = (
+    """Generate a short title (max 5 words) for: '{query}'. Return ONLY the title."""
+)
+
 # Simplified Access Registry
 PROMPTS = {
     "router": ROUTER_PROMPT_V2,
@@ -163,4 +173,6 @@ PROMPTS = {
     "planning_system": PLANNING_SYSTEM_PROMPT_V1,
     "coding_system": CODING_SYSTEM_PROMPT_V1,
     "direct_response_system": DIRECT_RESPONSE_SYSTEM_PROMPT_V2,
+    "research_synthesis": RESEARCH_SYNTHESIS_PROMPT,
+    "title_generation": TITLE_GENERATION_PROMPT,
 }
